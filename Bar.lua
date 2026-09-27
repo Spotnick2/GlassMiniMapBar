@@ -33,31 +33,36 @@ local hideTimer = 0
 
 local function ldbi() return LibStub("LibDBIcon-1.0", true) end
 
+-- Which halves of the screen the launcher sits in: onRight, onTop. Compared
+-- in UIParent units: the launcher lives in the Minimap's scale, which Edit
+-- Mode or a minimap addon may change.
+local function launcherSide()
+    if not launcher then return true, true end
+    local x, y = launcher:GetCenter()
+    if type(x) ~= "number" or type(y) ~= "number" then return true, true end
+    local s = launcher:GetEffectiveScale() / UIParent:GetEffectiveScale()
+    return x * s >= UIParent:GetWidth() / 2, y * s >= UIParent:GetHeight() / 2
+end
+
 -- "left" | "right" | "up" | "down", resolving "auto" from which half of the
 -- screen the launcher sits in: the bar opens toward the middle.
 function Bar.Direction()
     local d = db.direction
     if d ~= "auto" then return d end
-    local x = launcher and launcher:GetCenter()
-    local half = UIParent:GetWidth() / 2
-    if type(x) == "number" and x < half then return "right" end
-    return "left"
-end
-
--- Rows stack away from the nearer screen edge: down when the launcher is in
--- the top half (the usual minimap corner), up otherwise.
-local function stackDown()
-    local _, y = launcher and launcher:GetCenter()
-    return not (type(y) == "number" and y < UIParent:GetHeight() / 2)
+    return launcherSide() and "left" or "right"
 end
 
 -- Place the visible buttons and size the bar. Returns the number placed.
+-- Extra lines stack toward the screen centre (rows down from a top-half
+-- launcher, columns left from a right-half one), and the first line always
+-- sits level with the launcher.
 function Bar.Layout()
     if not frame then return 0 end
     local visible = Collector.Visible(db.hidden)
     for _, e in ipairs(Collector.entries) do W.Hide(e.btn) end
 
     local dir = Bar.Direction()
+    local onRight, onTop = launcherSide()
     local vertical = dir == "up" or dir == "down"
     local size, gap = db.buttonSize, Bar.GAP
     local pad = Glass.Inset("large")
@@ -71,14 +76,13 @@ function Bar.Layout()
     local level = Glass.ContentLevel(frame)
     for i, e in ipairs(visible) do
         local k = i - 1
-        local along, across = k % perLine, math.floor(k / perLine)
+        local a = pad + (k % perLine) * (size + gap) + size / 2              -- along the line
+        local c = pad + math.floor(k / perLine) * (size + gap) + size / 2    -- which line
         local x, y
         if vertical then
-            x = pad + across * (size + gap) + size / 2
-            y = -(pad + along * (size + gap) + size / 2)
+            x, y = onRight and (short - c) or c, -a
         else
-            x = pad + along * (size + gap) + size / 2
-            y = -(pad + across * (size + gap) + size / 2)
+            x, y = a, onTop and -c or -(short - c)
         end
         local btn = e.btn
         local scale = size / ((type(e.width) == "number" and e.width > 0) and e.width or size)
@@ -94,15 +98,14 @@ function Bar.Layout()
     frame:ClearAllPoints()
     if launcher then
         local half = pad + size / 2
-        local down = stackDown()
         if dir == "left" then
-            frame:SetPoint(down and "TOPRIGHT" or "BOTTOMRIGHT", launcher, "LEFT", -gap, down and half or -half)
+            frame:SetPoint(onTop and "TOPRIGHT" or "BOTTOMRIGHT", launcher, "LEFT", -gap, onTop and half or -half)
         elseif dir == "right" then
-            frame:SetPoint(down and "TOPLEFT" or "BOTTOMLEFT", launcher, "RIGHT", gap, down and half or -half)
+            frame:SetPoint(onTop and "TOPLEFT" or "BOTTOMLEFT", launcher, "RIGHT", gap, onTop and half or -half)
         elseif dir == "down" then
-            frame:SetPoint("TOPLEFT", launcher, "BOTTOM", -half, -gap)
+            frame:SetPoint(onRight and "TOPRIGHT" or "TOPLEFT", launcher, "BOTTOM", onRight and half or -half, -gap)
         else
-            frame:SetPoint("BOTTOMLEFT", launcher, "TOP", -half, gap)
+            frame:SetPoint(onRight and "BOTTOMRIGHT" or "BOTTOMLEFT", launcher, "TOP", onRight and half or -half, gap)
         end
     else
         frame:SetPoint("CENTER", UIParent, "CENTER")
@@ -118,6 +121,18 @@ Bar.GROW = { duration = 0.18, from = 0.05 }
 Bar.SHRINK = { duration = 0.12 }
 local ORIGIN = { left = "RIGHT", right = "LEFT", up = "BOTTOM", down = "TOP" }
 local grow, shrink, closing = nil, nil, false
+-- Set when a click on the launcher closed the bar: the cursor is still on the
+-- launcher, which must not count as "hovering back" until it leaves.
+local clickClosed = false
+
+-- Hide GameTooltip only when it's ours: the bar also closes while the cursor
+-- is over a unit or an action button, whose tooltip isn't ours to hide.
+local function hideOurTooltip()
+    local owner = GameTooltip:GetOwner()
+    if not owner then return end
+    local ok, parent = pcall(W.GetParent, owner)
+    if owner == launcher or owner == frame or (ok and parent == frame) then GameTooltip:Hide() end
+end
 
 local function makeAnim(fromScale, toScale, fromAlpha, toAlpha, duration, smoothing)
     local ag = frame:CreateAnimationGroup()
@@ -151,8 +166,9 @@ function Bar.IsOpen() return frame ~= nil and frame:IsShown() and not closing en
 
 function Bar.Open()
     if not frame then return end
-    Collector.Scan()                    -- late creators: cheap, and only on open
-    Bar.Layout()
+    -- Late creators: a scan that finds one lays out through onChange already.
+    if Collector.Scan() == 0 then Bar.Layout() end
+    Bar.UpdateLauncherIcon()            -- the launcher may have moved sides
     hideTimer = db.hideDelay
     local wasShown, wasClosing = frame:IsShown(), closing
     if closing then shrink:Stop() end
@@ -166,7 +182,7 @@ function Bar.Open()
 end
 
 function Bar.Close()
-    GameTooltip:Hide()
+    hideOurTooltip()
     if not (frame and frame:IsShown()) or closing then return end
     if db.animate then
         closing = true
@@ -191,7 +207,7 @@ end
 local function onUpdate(_, elapsed)
     if closing then
         -- Back on the launcher while it shrinks (hover mode): grow it again.
-        if db.openOn == "hover" and launcher and launcher:IsMouseOver() then Bar.Open() end
+        if db.openOn == "hover" and not clickClosed and launcher and launcher:IsMouseOver() then Bar.Open() end
         return
     end
     if mouseIsHome() then
@@ -213,11 +229,19 @@ end
 -- The launcher
 --------------------------------------------------------------------------------
 
+-- The last-used button, while the option is on and the button is still in
+-- the bar (not hidden by the user or by its addon).
+local function lastEntry()
+    local e = db.lastUsed and db.last and Collector.byName[db.last.name]
+    if e and e.wanted and not db.hidden[e.name] then return e end
+    return nil
+end
+
 -- The last-used button's icon, or the arrow toward the bar.
 function Bar.UpdateLauncherIcon()
     if not dataObject then return end
     local icon, coords
-    local last = db.lastUsed and db.last and Collector.byName[db.last.name]
+    local last = lastEntry()
     if last then
         local obj = last.btn.dataObject     -- a LibDBIcon button: ask its broker
         if type(obj) == "table" and obj.icon then
@@ -237,7 +261,7 @@ function Bar.UpdateLauncherIcon()
 end
 
 local function showTip(owner)
-    local last = db.lastUsed and db.last and Collector.byName[db.last.name]
+    local last = lastEntry()
     local empty = #Collector.Visible(db.hidden) == 0
     if not (last or empty) then return end
     GameTooltip:SetOwner(owner, "ANCHOR_NONE")
@@ -252,28 +276,34 @@ end
 function Bar.OnLauncherClick(_, mouse)
     GameTooltip:Hide()
     if mouse == "RightButton" and not IsShiftKeyDown() then
-        local last = db.lastUsed and db.last
-        if last and Collector.Replay(last.name, last.mouse) then return end
+        local last = lastEntry()
+        if last and Collector.Replay(last.name, db.last.mouse) then return end
         GlassMiniMapBar.OpenOptions()
     elseif mouse == "RightButton" or mouse == "MiddleButton" then
         GlassMiniMapBar.OpenOptions()
+    elseif Bar.IsOpen() then
+        Bar.Close()
+        clickClosed = true
     else
-        Bar.Toggle()
+        Bar.Open()
     end
 end
 
 function Bar.OnLauncherEnter(owner)
+    clickClosed = false
     if db.openOn == "hover" and not Bar.IsOpen() then Bar.Open() end
     showTip(owner)
 end
 
 function Bar.OnLauncherLeave()
+    clickClosed = false
     GameTooltip:Hide()
 end
 
 function Bar.ApplySkin()
+    -- One odd button must not leave the rest unskinned (or the layout unrun).
     for _, e in ipairs(Collector.entries) do
-        if db.skin then Orb.Skin(e.btn) else Orb.Unskin(e.btn) end
+        API.Try("skin:" .. e.name, db.skin and Orb.Skin or Orb.Unskin, e.btn)
     end
     if launcher then Orb.Skin(launcher) end   -- ours always wears the glass
 end

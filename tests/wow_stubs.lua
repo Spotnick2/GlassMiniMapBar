@@ -119,6 +119,7 @@ function Methods.GetWidth(w) return w._width end
 function Methods.GetHeight(w) return w._height end
 function Methods.GetSize(w) return w._width, w._height end
 function Methods.GetCenter(w) return w._cx, w._cy end
+function Methods.GetEffectiveScale(w) return w._effScale or 1 end
 function Methods.SetScale(w, s) w._scale = s end
 function Methods.GetScale(w) return w._scale end
 function Methods.SetAlpha(w, a) w._alpha = a end
@@ -239,6 +240,7 @@ function Methods.SetFont(fs, file, size, flags) fs._font = { file, size, flags }
 
 -- GameTooltip: records its lines.
 function Methods.SetOwner(tt, owner) tt._owner = owner; tt._lines = {} end
+function Methods.GetOwner(tt) return tt._owner end
 function Methods.ClearLines(tt) tt._lines = {} end
 function Methods.AddLine(tt, text) table.insert(tt._lines, text) end
 

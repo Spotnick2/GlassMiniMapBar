@@ -22,9 +22,6 @@ for line in f:lines() do
 end
 f:close()
 
--- Methods only the stub's own fakes call (LibDBIcon stand-in, test drivers).
-local STUB_ONLY = { ["Button:Click"] = false }
-
 WoW.methodsCalled = {}
 loadAddon({ db = { lastUsed = true }, before = function()
     WoW.LDBI():Register("DBM", { icon = "dbm" }, {})
@@ -38,7 +35,21 @@ L:Click("RightButton")
 L:Click("LeftButton")
 WoW.tick(2)
 WoW.fire("GLOBAL_MOUSE_DOWN", "LeftButton")
+WoW.finishAnimations()                            -- the shrink's OnFinished
+local hand = entry("HandMadeMinimapButton").btn
+hand._scripts.OnMouseUp(hand, "RightButton")       -- the hooked OnMouseUp
+L:Click("RightButton")                            -- replays it via its mouse scripts
+local owned = entry("LibDBIcon10_DBM").btn
+owned:Hide(); owned:Show(); WoW.flushTimers(0)    -- deferred owner change
+owned:SetScript("OnDragStart", function() end)   -- the drag guard
 GlassMiniMapBar.Options._test.panel():Show()
+-- Every control on the panel, so each OnClick runs.
+for _, w in ipairs(WoW.frames) do
+    if w._parent == GlassMiniMapBar.Options._test.panel() and w._scripts.OnClick then
+        w._scripts.OnClick(w, "LeftButton")
+    end
+end
+WoW.flushTimers()
 for _, k in ipairs({ "skin", "lastUsed" }) do GlassMiniMapBar.Set(k, false); GlassMiniMapBar.Set(k, true) end
 for _, d in ipairs({ "left", "right", "up", "down", "auto" }) do GlassMiniMapBar.Set("direction", d) end
 GlassMiniMapBar.Set("lock", true)
@@ -48,9 +59,7 @@ local n = 0
 for name in pairs(WoW.methodsCalled) do
     n = n + 1
     local method = name:match(":(%a+)$")
-    if STUB_ONLY[name] == nil then
-        check(widget[name] or documented[method], "method exists on Forever: " .. name)
-    end
+    check(widget[name] or documented[method], "method exists on Forever: " .. name)
 end
 check(n > 40, "recorded a realistic number of methods (" .. n .. ")")
 eq(next(GlassMiniMapBar.failures), nil, "no failures recorded while exercising everything")

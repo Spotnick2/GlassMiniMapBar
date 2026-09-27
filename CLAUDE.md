@@ -67,27 +67,42 @@ TOC load order: `Libs\*` → `Compat.lua` → `Glass.lua` → `Orb.lua` → `Col
     `RegisterForDrag`, … on the button's **own table** with no-ops, so the owner (LibDBIcon moves
     its buttons on login and on drag) can't pull it back. The bar moves it through **`API.W`**, the
     Frame metatable's methods. `Show`/`Hide`/`SetShown`/`IsShown` record `entry.wanted` and
-    trigger a relayout instead: an addon hiding its icon hides it from the bar. Alpha/translation
+    schedule a relayout **for the next frame** (`Collector.Changed`, under `API.Try`): never do
+    our work inside another addon's call, where a throw would surface in their code. The
+    `IconCreated` callback defers the same way. An addon hiding its icon hides it from the bar.
+    `SetScript`/`HookScript` refuse `OnDragStart`/`OnDragStop` (LibDBIcon re-sets them on
+    `Refresh`/`Unlock`; its drag handler rewrites the owner's saved minimap position), and the
+    existing drag scripts are cleared at grab. A grab that throws half-way is **rolled back**
+    (overrides removed, parent, points and visibility restored). Alpha/translation
     animations on the button are stopped and their `Play` voided (LibDBIcon's mouseover fade).
     Drag is unregistered.
   - Clicks are heard with `HookScript` on `OnClick` (or `OnMouseUp` when that's all it has).
     `Replay(name, mouse)` uses `Button:Click(mouse)` or calls the mouse scripts directly.
+  - `Scan(report)` builds the skipped-children report (and asks `issecurevariable`) only for
+    `/gmb scan`; the scan on every bar open stays cheap.
   - **Nothing is secure**: protected frames are never grabbed, so all of it runs in combat.
 - **`Bar.lua`**: the launcher (LibDataBroker object `GlassMiniMapBar`, type `data source`,
   registered with LibDBIcon into `db.minimap`) and the bar (`GlassMiniMapBarFrame`, strata
   `MEDIUM`, `Glass.Apply(..., "large")`). Layout is rows of `perRow` in reading order, buttons
   scaled to `buttonSize` from their own width, at `Glass.ContentLevel`. Direction `auto` opens
-  toward the screen centre, rows stack down from a top-half launcher. Closing: the mouse has been
+  toward the screen centre; extra lines also stack toward the centre (rows down from a top-half
+  launcher, up from a bottom-half one; columns left from a right-half one), and the first line
+  always sits level with the launcher. Screen halves are compared in UIParent units
+  (`GetEffectiveScale`), since the launcher lives in the Minimap's scale. Closing: the mouse has been
   off the bar, launcher and any open menu for `hideDelay` seconds; in click mode also on a
   `GLOBAL_MOUSE_DOWN` elsewhere (registered only while open). The bar **grows out of the launcher** (a client-run Scale + Alpha animation from the
   launcher-side edge, squashed along its length only) and shrinks back on close; the frame hides
   on the shrink's `OnFinished`, and hovering the launcher mid-shrink grows it again (`animate`
-  option). Launcher clicks: left toggles;
+  option). A left-click close sets `clickClosed`, so the cursor still resting on the launcher
+  doesn't count as hovering back (cleared on leave/enter). Closing hides `GameTooltip` only if it
+  belongs to the launcher or a bar button. **Last used** only counts while that button is in the
+  bar (not hidden by the user or its addon). Launcher clicks: left toggles;
   right repeats the last used (option on) or opens the options; shift-right or middle always
   opens the options.
-- **`Options.lua`**: the Options > AddOns canvas panel, built on first show with hand-made
-  widgets (Priestly's approach: `OptionsSliderTemplate` and the Classic check template aren't in
-  this client, and a missing template doesn't throw). Numbers use `-`/`+` steppers.
+- **`Options.lua`**: the Options > AddOns canvas panel, built on first show from
+  `UICheckButtonTemplate` / `UIPanelButtonTemplate` (measured present, porting guide "UI
+  templates"). Numbers use `-`/`+` steppers; `MinimalSliderWithSteppersTemplate` is also present
+  if a slider is ever wanted.
   `Options.Refresh` is a no-op until the panel has been built.
 - **`GlassMiniMapBar.lua`**: `GlassMiniMapBarDB` (see the header for keys), `LoadDB` (fills,
   repairs and clamps, never wipes), `Set`, `SetHidden`, startup at `PLAYER_LOGIN`, and
@@ -122,7 +137,8 @@ HidingBar's `-Vanilla.lua` and `-TBC.lua` files.
 4. **Last used**: the replay clicks a button inside the *closed* (hidden) bar. Check that
    `Button:Click` fires on a hidden button, and where a handler that anchors a menu to `self`
    (DBM, Leatrix) puts it. If either is wrong, open the bar before replaying.
-5. `Button:RegisterForDrag()` with no arguments (unregister): it's under `pcall`.
+5. `Button:RegisterForDrag()` with no arguments (unregister): it's under `pcall`, and the drag
+   scripts are cleared and guarded regardless, so a failure there is harmless.
 6. **The grow animation** (Scale animation origin and `SetScaleFrom` on a frame with masked
    9-sliced regions): look for rim or mask artefacts while it plays.
 7. Textures: `orb_*.tga` are new files, so a **client restart** is needed the first time.

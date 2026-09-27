@@ -70,7 +70,12 @@ GlassMiniMapBar.Set("perRow", 12)
 
 -- Vertical.
 GlassMiniMapBar.Set("direction", "down")
-eq(bar()._points[1][1], "TOPLEFT", "down: hangs under the launcher")
+eq(bar()._points[1][1], "TOPRIGHT", "down, right-half launcher: hangs under it, columns grow left")
+eq(bar()._points[1][4], pad + size / 2, "...first column centred under the launcher")
+GlassMiniMapBar.Set("perRow", 2)
+local first = entry("LibDBIcon10_AtlasLoot").btn
+eq(first._points[1][4] * first._scale, bar()._width - (pad + size / 2), "...first column is the right-most one")
+GlassMiniMapBar.Set("perRow", 12)
 eq(bar()._height, pad * 2 + 5 * size + 4 * gap, "down: tall")
 GlassMiniMapBar.Set("direction", "auto")
 
@@ -152,6 +157,73 @@ local plays = grow._plays
 B.Open()
 eq(grow._plays, plays, "animate off: no grow")
 GlassMiniMapBar.Set("animate", true)
+
+-- Review fixes (PR #2).
+
+-- Rows stack UP from a bottom-half launcher, first row level with it.
+B.Close(); WoW.finishAnimations()
+launcher()._cy = 50
+GlassMiniMapBar.Set("perRow", 2)
+eq(bar()._points[1][1], "BOTTOMRIGHT", "bottom-half launcher: anchored by the bottom edge")
+eq(bar()._points[1][5], -(pad + size / 2), "...bottom row level with the launcher")
+first = entry("LibDBIcon10_AtlasLoot").btn
+eq(first._points[1][5] * first._scale, -(bar()._height - (pad + size / 2)), "...and the first row IS the bottom one")
+GlassMiniMapBar.Set("perRow", 12)
+launcher()._cy = 700
+
+-- Screen side in UIParent units: a 2x minimap puts centre x=500 at screen x=1000.
+launcher()._cx, launcher()._effScale = 500, 2
+eq(B.Direction(), "left", "effective scale: a scaled launcher on the right still opens left")
+launcher()._cx, launcher()._effScale = 900, nil
+
+-- Hover + animate: a left-click on the launcher closes the bar for good,
+-- even though the cursor is still on the launcher.
+B.Close(); WoW.finishAnimations()
+launcher()._scripts.OnEnter(launcher())
+WoW.mouseOver[launcher()] = true
+launcher():Click("LeftButton")
+WoW.tick(0.02); WoW.tick(0.02)
+eq(B.IsOpen(), false, "click-close isn't undone by the cursor still on the launcher")
+WoW.finishAnimations()
+eq(bar():IsShown(), false, "...and the shrink completes")
+launcher()._scripts.OnLeave(launcher())
+WoW.mouseOver[launcher()] = nil
+launcher()._scripts.OnEnter(launcher())
+eq(B.IsOpen(), true, "a fresh hover opens it again")
+
+-- Closing leaves other UI's tooltips alone.
+local unitFrame = CreateFrame("Button", "SomeUnitFrame", UIParent)
+GameTooltip:SetOwner(unitFrame); GameTooltip:Show()
+B.Close(); WoW.finishAnimations()
+eq(GameTooltip._shown, true, "someone else's tooltip survives the bar closing")
+B.Open()
+GameTooltip:SetOwner(entry("LibDBIcon10_DBM").btn); GameTooltip:Show()
+B.Close(); WoW.finishAnimations()
+eq(GameTooltip._shown, false, "a bar button's tooltip goes with the bar")
+
+-- Last used follows what's actually in the bar.
+GlassMiniMapBar.Set("lastUsed", true)
+lp:Click("LeftButton")
+eq(obj.icon, "Interface\\Icons\\Leatrix_Plus", "last used shown")
+GlassMiniMapBar.SetHidden("LibDBIcon10_Leatrix_Plus", true)
+eq(obj.icon, B.ARROWS.left, "hidden by the user: back to the arrow")
+local before = #clicks
+WoW.settingsOpened = nil
+launcher():Click("RightButton")
+eq(#clicks, before, "...and right-click doesn't fire the hidden button")
+eq(WoW.settingsOpened, "Glass MiniMap Bar", "...it opens the options instead")
+GlassMiniMapBar.SetHidden("LibDBIcon10_Leatrix_Plus", false)
+lp:Hide(); WoW.flushTimers(0)
+eq(obj.icon, B.ARROWS.left, "hidden by its addon: back to the arrow")
+lp:Show(); WoW.flushTimers(0)
+GlassMiniMapBar.Set("lastUsed", false)
+
+-- The arrow follows the launcher to the other side on the next open.
+B.Close(); WoW.finishAnimations()
+launcher()._cx = 100
+B.Open()
+eq(obj.icon, B.ARROWS.right, "launcher moved left: the arrow points right on open")
+launcher()._cx = 900
 
 -- A launcher on the left half opens right.
 launcher()._cx = 100

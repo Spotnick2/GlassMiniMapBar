@@ -73,6 +73,7 @@ eq(db.hidden.LibDBIcon10_DBM, nil, "checking shows it again")
 
 -- A button collected later appears on the next refresh.
 WoW.LDBI():Register("Attune_Broker", { icon = "a" }, {})
+WoW.flushTimers(0)
 eq(#rows, 3, "the list follows the collector")
 
 done("test_options")

@@ -143,9 +143,10 @@ end
 -- A glass StatusBar: masked rounded fill, ADD gloss, inner shadow, thin edge.
 -- Colour it with bar:SetStatusBarColor(r, g, b). Values may be secret:
 -- SetMinMaxValues/SetValue take them without Lua touching them.
--- The gloss, shade and edge live on bar.overlay (frame level bar + 2), so
--- anything added over the fill at level bar + 1 (e.g. heal prediction) sits
--- UNDER the glass layers, like the fill itself.
+-- The gloss, shade and edge live on bar.overlay (frame level bar + 3), so
+-- anything added over the fill at level bar + 1 or + 2 (health loss, heal
+-- prediction) sits UNDER the glass layers, like the fill itself.
+Glass.OVERLAY_LEVEL = 3
 function Glass.Bar(parent, height)
     local st = Glass.STYLE
     local bar = CreateFrame("StatusBar", nil, parent)
@@ -166,7 +167,7 @@ function Glass.Bar(parent, height)
 
     local over = CreateFrame("Frame", nil, bar)
     over:SetAllPoints(bar)
-    over:SetFrameLevel(bar:GetFrameLevel() + 2)
+    over:SetFrameLevel(bar:GetFrameLevel() + Glass.OVERLAY_LEVEL)
     bar.overlay = over
     local omask = Glass.Mask(over, "bar_mask", 8)
 
@@ -181,6 +182,11 @@ function Glass.Bar(parent, height)
     inner:SetPoint("BOTTOMLEFT", bar, "BOTTOMLEFT")
     inner:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT")
     inner:SetHeight(math.max(3, math.floor(height * 0.45)))
+    -- Keep the shade at 45% when the bar is resized later (the player's
+    -- bars shrink while its inside cast row shows).
+    hooksecurefunc(bar, "SetHeight", function(_, h)
+        if type(h) == "number" then inner:SetHeight(math.max(3, math.floor(h * 0.45))) end
+    end)
     inner:SetColorTexture(1, 1, 1, 1)
     inner:SetGradient("VERTICAL", CreateColor(0, 0, 0, st.innerShadow), CreateColor(0, 0, 0, 0))
     inner:AddMaskTexture(omask)
@@ -191,7 +197,7 @@ function Glass.Bar(parent, height)
     slice(edge, 8)
 
     -- Keep the overlay two levels above the bar when the caller moves the bar.
-    hooksecurefunc(bar, "SetFrameLevel", function(self, level) over:SetFrameLevel(level + 2) end)
+    hooksecurefunc(bar, "SetFrameLevel", function(self, level) over:SetFrameLevel(level + Glass.OVERLAY_LEVEL) end)
     return bar
 end
 

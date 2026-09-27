@@ -104,12 +104,48 @@ local VOIDED = { "SetPoint", "ClearAllPoints", "SetAllPoints", "SetParent", "Set
                  "SetIgnoreParentScale", "StartMoving", "SetSize", "SetWidth", "SetHeight",
                  "SetHitRectInsets", "RegisterForDrag" }
 
+-- The owner's Show/Hide run inside ITS code: never do our work there (a throw
+-- would surface in their addon, and re-entrant OnShow scripts would land in
+-- the middle of our layout). Record the wish and update once, next frame.
+local pending = false
+local function flushPending()
+    pending = false
+    API.Try("change", Collector.onChange)
+end
+function Collector.Changed()
+    if pending then return end
+    pending = true
+    C_Timer.After(0, flushPending)
+end
+
+-- LibDBIcon (Refresh, Unlock) sets its drag scripts again through SetScript:
+-- refuse those, as HidingBar does, so a drag in the bar can't reach its
+-- OnDragStart (which rewrites the owner's saved minimap position).
+local DRAG = { ondragstart = true, ondragstop = true }
+local function guardedSetScript(self, script, fn, ...)
+    if fn ~= nil and type(script) == "string" and DRAG[script:lower()] then return end
+    return W.SetScript(self, script, fn, ...)
+end
+local function guardedHookScript(self, script, ...)
+    if type(script) == "string" and DRAG[script:lower()] then return end
+    return W.HookScript(self, script, ...)
+end
+
+local OVERRIDDEN = { "Show", "Hide", "SetShown", "IsShown", "SetScript", "HookScript" }
+
 local function installOverrides(btn, entry)
     for _, m in ipairs(VOIDED) do btn[m] = void end
-    btn.Show = function() if not entry.wanted then entry.wanted = true; Collector.onChange() end end
-    btn.Hide = function() if entry.wanted then entry.wanted = false; Collector.onChange() end end
+    btn.Show = function() if not entry.wanted then entry.wanted = true; Collector.Changed() end end
+    btn.Hide = function() if entry.wanted then entry.wanted = false; Collector.Changed() end end
     btn.SetShown = function(self, show) if show then self:Show() else self:Hide() end end
     btn.IsShown = function() return entry.wanted end
+    btn.SetScript = guardedSetScript
+    btn.HookScript = guardedHookScript
+end
+
+local function removeOverrides(btn)
+    for _, m in ipairs(VOIDED) do btn[m] = nil end
+    for _, m in ipairs(OVERRIDDEN) do btn[m] = nil end
 end
 
 local function hookClicks(btn, entry)
@@ -135,6 +171,10 @@ function Collector.Grab(btn)
     if not name or not Collector.host then return nil end
     if W.IsForbidden(btn) or W.IsProtected(btn) then return nil end
     local entry = { btn = btn, name = name, display = Collector.DisplayName(name), wanted = W.IsShown(btn) }
+    -- What to put back if any step fails, so a half-grabbed button isn't
+    -- left hidden inside the bar where no later scan finds it.
+    local parent, points = W.GetParent(btn), {}
+    for i = 1, W.GetNumPoints(btn) do points[i] = { W.GetPoint(btn, i) } end
     local ok, err = pcall(function()
         W.StopMovingOrSizing(btn)
         W.SetIgnoreParentScale(btn, false)
@@ -144,6 +184,8 @@ function Collector.Grab(btn)
         -- No mouse buttons: no more dragging it around the minimap ring.
         -- A client that refuses the empty call must not cost us the button.
         pcall(W.RegisterForDrag, btn)
+        W.SetScript(btn, "OnDragStart", nil)
+        W.SetScript(btn, "OnDragStop", nil)
         W.SetAlpha(btn, 1)
         tameAnimations(btn)
         entry.width = W.GetWidth(btn)
@@ -155,6 +197,13 @@ function Collector.Grab(btn)
     end)
     if not ok then
         API.Fail("grab:" .. name, err)
+        pcall(function()
+            removeOverrides(btn)
+            W.SetParent(btn, parent)
+            W.ClearAllPoints(btn)
+            for _, p in ipairs(points) do W.SetPoint(btn, unpack(p)) end
+            if entry.wanted then W.Show(btn) end
+        end)
         return nil
     end
     entryOf[btn] = entry
@@ -164,9 +213,9 @@ function Collector.Grab(btn)
     return entry
 end
 
--- Scan the minimap for candidates. Returns the number newly grabbed and, for
--- /gmb scan, the rejects: { { name = , reason = , secure = }, ... }.
-function Collector.Scan()
+-- Scan the minimap for candidates. Returns the number newly grabbed and, when
+-- `report` (for /gmb scan), the rejects: { { name = , reason = , secure = }, ... }.
+function Collector.Scan(report)
     local added, rejects = 0, {}
     for _, parentName in ipairs({ "Minimap", "MinimapBackdrop" }) do
         local parent = rawget(_G, parentName)
@@ -175,7 +224,7 @@ function Collector.Scan()
                 local why = Collector.Reject(child, parent)
                 if why == nil then
                     if Collector.Grab(child) then added = added + 1 end
-                elseif why ~= "grabbed" then
+                elseif report and why ~= "grabbed" then
                     local name = W.GetName(child)
                     if name then
                         table.insert(rejects, { name = name, reason = why, secure = API.IsBlizzardGlobal(name) })
@@ -188,11 +237,12 @@ function Collector.Scan()
     return added, rejects
 end
 
--- LibDBIcon_IconCreated: (event, button, name).
+-- LibDBIcon_IconCreated: (event, button, name). Runs inside the other addon's
+-- lib:Register call, so the relayout is deferred like an owner's Show/Hide.
 function Collector.OnIconCreated(_, btn)
     if not btn then return end
     local parent = W.GetParent(btn) or rawget(_G, "Minimap")
-    if Collector.Reject(btn, parent) == nil and Collector.Grab(btn) then Collector.onChange() end
+    if Collector.Reject(btn, parent) == nil and Collector.Grab(btn) then Collector.Changed() end
 end
 
 -- Entries the bar should show: wanted by their addon, not hidden by the user.

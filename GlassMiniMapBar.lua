@@ -69,6 +69,7 @@ end
 function GlassMiniMapBar.SetHidden(name, hidden)
     db.hidden[name] = hidden and true or nil
     Bar.Layout()
+    Bar.UpdateLauncherIcon()
 end
 
 function GlassMiniMapBar.OpenOptions()
@@ -125,7 +126,7 @@ API.RegisterEvent(events, "PLAYER_LOGIN")
 local function slash(msg)
     local cmd = (msg or ""):lower():match("^%s*(%S*)")
     if cmd == "scan" then
-        local added, rejects = Collector.Scan()
+        local added, rejects = Collector.Scan(true)
         API.Print(("%d collected (%d new)."):format(#Collector.entries, added))
         for _, e in ipairs(Collector.entries) do
             local state = db.hidden[e.name] and "hidden by you"

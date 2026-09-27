@@ -46,11 +46,15 @@ GlassMiniMapBar.Bar.Open()
 eq(entry("LibDBIcon10_BugSack").btn._shown, false, "an unwanted button isn't placed")
 entry("LibDBIcon10_BugSack").btn:Show()
 eq(entry("LibDBIcon10_BugSack").wanted, true, "owner Show recorded")
+eq(entry("LibDBIcon10_BugSack").btn._shown, false, "...but nothing done inside the owner's call")
+WoW.flushTimers(0)
 eq(entry("LibDBIcon10_BugSack").btn._shown, true, "...and the bar placed it")
 eq(entry("LibDBIcon10_BugSack").btn:IsShown(), true, "IsShown answers the owner's wish")
 dbm:Hide()
+WoW.flushTimers(0)
 eq(dbm._shown, false, "owner Hide takes it out of the bar")
 dbm:Show()
+WoW.flushTimers(0)
 
 -- LibDBIcon buttons made after us arrive through the callback.
 WoW.LDBI():Register("Attune_Broker", { icon = "a" }, {})
@@ -61,7 +65,7 @@ WoW.flushTimers()
 check(entry("RXPGuidesLate") ~= nil, "late hand-made button collected by a timed scan")
 
 -- The scan report explains the skips.
-local _, rejects = C.Scan()
+local _, rejects = C.Scan(true)
 local why = {}
 for _, r in ipairs(rejects) do why[r.name] = r.reason end
 eq(why.MinimapZoomIn, "Blizzard", "zoom: Blizzard")
@@ -101,5 +105,40 @@ eq(#dbm.icon._masks, 0, "mask removed")
 check(Orb.IsSkinned(launcher()), "the launcher keeps its glass")
 GlassMiniMapBar.Set("skin", true)
 eq(#dbm.icon._masks, 1, "skin again: one mask, not two")
+
+-- Review fixes (PR #2).
+
+-- Drag scripts: cleared at grab, and LibDBIcon can't set them again.
+eq(dbm._scripts.OnDragStart, nil, "OnDragStart cleared")
+dbm:SetScript("OnDragStart", function() end)
+eq(dbm._scripts.OnDragStart, nil, "owner SetScript OnDragStart refused")
+dbm:HookScript("OnDragStop", function() end)
+eq(dbm._scripts.OnDragStop, nil, "owner HookScript OnDragStop refused")
+local enter = function() end
+dbm:SetScript("OnEnter", enter)
+eq(dbm._scripts.OnEnter, enter, "other scripts still go through")
+
+-- Fields named like regions that aren't textures don't break the skin.
+local odd = WoW.MinimapButton({ name = "OddMinimapButton", ring = false })
+odd.border, odd.background, odd.icon = true, { 1, 0, 0 }, "icon"
+C.Scan()
+check(entry("OddMinimapButton") ~= nil, "odd button collected")
+check(GlassMiniMapBar.Orb.IsSkinned(odd), "...and skinned without touching its fake regions")
+eq(next(GlassMiniMapBar.failures), nil, "no failures from the odd fields")
+
+-- A grab that fails half-way puts the button back where it was.
+local broken = WoW.MinimapButton({ name = "BrokenMinimapButton" })
+broken._scripts.OnClick = nil
+broken._scripts.OnMouseUp = function() end
+local W = GlassMiniMapBar.API.W
+local origHook = W.HookScript
+W.HookScript = function() error("hook refused") end
+check(C.Grab(broken) == nil, "grab reports failure")
+W.HookScript = origHook
+eq(broken:GetParent(), Minimap, "rolled back onto the minimap")
+eq(rawget(broken, "SetPoint"), nil, "overrides removed")
+eq(broken._shown, true, "shown again")
+check(#broken._points > 0, "points restored")
+check(GlassMiniMapBar.failures["grab:BrokenMinimapButton"], "failure recorded")
 
 done("test_collector")

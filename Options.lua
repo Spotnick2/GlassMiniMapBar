@@ -1,11 +1,9 @@
 -- Options.lua: the panel under Options > AddOns.
 --
--- A canvas category (Settings.RegisterCanvasLayoutCategory), built by hand
--- the way Priestly's is: the Classic templates (OptionsSliderTemplate,
--- InterfaceOptionsCheckButtonTemplate) are not in this client, and a missing
--- template doesn't throw, it just yields a bare frame. So every widget asks
--- for its template, checks for a region the template should bring, and draws
--- its own art when the template didn't apply. Numbers use - / + steppers.
+-- A canvas category (Settings.RegisterCanvasLayoutCategory) with plain
+-- template widgets. UICheckButtonTemplate and UIPanelButtonTemplate are
+-- measured present on Forever (PORTING-TBC-TO-FOREVER.md, "UI templates").
+-- Numbers use - / + steppers: exact values, no slider drag to fiddle with.
 
 GlassMiniMapBar = GlassMiniMapBar or {}
 local Options = {}
@@ -17,26 +15,11 @@ local panel
 local controls = {}              -- widgets that mirror a setting: { refresh = fn }
 local rows = {}                  -- button list checkboxes, reused across refreshes
 
-local CHECK_ART = {
-    normal = "Interface\\Buttons\\UI-CheckBox-Up", pushed = "Interface\\Buttons\\UI-CheckBox-Down",
-    highlight = "Interface\\Buttons\\UI-CheckBox-Highlight", checked = "Interface\\Buttons\\UI-CheckBox-Check",
-}
-
-local function safeFrame(ftype, parent, template, proof)
-    local ok, f = pcall(CreateFrame, ftype, nil, parent, template)
-    if ok and f then return f, f[proof] ~= nil end
-    return CreateFrame(ftype, nil, parent), false
-end
-
+-- A check button with a label we own (template label fields have moved
+-- between UI versions).
 local function checkbox(parent, label)
-    local cb, templated = safeFrame("CheckButton", parent, "UICheckButtonTemplate", "Text")
+    local cb = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
     cb:SetSize(24, 24)
-    if not templated then
-        cb:SetNormalTexture(CHECK_ART.normal)
-        cb:SetPushedTexture(CHECK_ART.pushed)
-        cb:SetHighlightTexture(CHECK_ART.highlight)
-        cb:SetCheckedTexture(CHECK_ART.checked)
-    end
     local fs = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     fs:SetPoint("LEFT", cb, "RIGHT", 4, 0)
     fs:SetJustifyH("LEFT")
@@ -46,16 +29,8 @@ local function checkbox(parent, label)
 end
 
 local function button(parent, text, width)
-    local b, templated = safeFrame("Button", parent, "UIPanelButtonTemplate", "Text")
+    local b = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
     b:SetSize(width or 24, 22)
-    if not templated then
-        local bg = b:CreateTexture(nil, "BACKGROUND")
-        bg:SetAllPoints(b)
-        bg:SetColorTexture(0.2, 0.25, 0.32, 0.9)
-        local fs = b:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-        fs:SetPoint("CENTER")
-        b:SetFontString(fs)
-    end
     b:SetText(text)
     return b
 end

@@ -22,6 +22,14 @@ local BACKGROUND_IDS = { [136467] = true }  -- Interface\Minimap\UI-Minimap-Back
 
 local function lower(v) return type(v) == "string" and v:lower() or nil end
 
+-- A hand-made button may carry fields named border/background/icon that are
+-- anything but textures (a flag, a colour table): only take real ones.
+local function isTexture(r)
+    if type(r) ~= "table" or type(r.IsObjectType) ~= "function" then return nil end
+    local ok, yes = pcall(r.IsObjectType, r, "Texture")
+    return (ok and yes) and r or nil
+end
+
 -- Which of a button's textures are its border, its background and its icon.
 -- LibDBIcon names them (border, background, icon); anything else is found the
 -- way HidingBar does: by file, by region key, then by "icon" in the path.
@@ -42,8 +50,7 @@ function Orb.Regions(btn)
             end
         end
     end
-    if type(icon) ~= "table" or not icon.IsObjectType or not icon:IsObjectType("Texture") then icon = nil end
-    return border, background, icon
+    return isTexture(border), isTexture(background), isTexture(icon)
 end
 
 -- The icon to show for a button elsewhere (the launcher's "last used" face):
