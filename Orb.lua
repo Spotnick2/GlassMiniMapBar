@@ -101,6 +101,7 @@ local function build(btn)
     local rim = btn:CreateTexture(nil, "OVERLAY", nil, 7)
     rim:SetTexture(Glass.MEDIA .. "orb_rim")
     rim:SetAllPoints(btn)
+    rim:SetAlpha(Glass.STYLE.rimAlpha or 1)   -- the same softened rim as the panels
     s.rim = rim
 
     -- The icon's own round mask, sized with the icon in Orb.Skin.
