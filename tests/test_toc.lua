@@ -6,6 +6,7 @@ local toc = io.open("GlassMiniMapBar.toc"):read("*a")
 check(toc:find("## Interface: 16001", 1, true), "interface 16001 (1.60.1; 11601 is the transposed-digit bug)")
 check(toc:find("## Version: @project-version@", 1, true), "packager version token kept")
 check(toc:find("## SavedVariables: GlassMiniMapBarDB", 1, true), "saved variables declared")
+check(toc:find("## X-Curse-Project-ID: 1715522", 1, true), "CurseForge project ID (1715522)")
 for _, f in ipairs(tocFiles(true)) do
     check(io.open(f, "r") ~= nil, "TOC file exists: " .. f)
 end
