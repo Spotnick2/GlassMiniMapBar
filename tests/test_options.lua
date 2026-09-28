@@ -60,20 +60,86 @@ check(dirButton, "direction button shows Auto")
 dirButton._scripts.OnClick(dirButton)
 eq(db.direction, "left", "cycles to Left")
 
--- The button list: one box per collected button, checked = shown.
-local rows = O._test.rows
-eq(#rows, 2, "a row per collected button")
-eq(rows[1].label._text, "BugSack |cff808080(hidden by its addon)|r", "an owner-hidden button says so")
-eq(rows[2].label._text, "DBM", "DBM listed")
-eq(rows[2]:GetChecked(), true, "shown by default")
-rows[2]:SetChecked(false); rows[2]._scripts.OnClick(rows[2])
-eq(db.hidden.LibDBIcon10_DBM, true, "unchecking hides it")
-rows[2]:SetChecked(true); rows[2]._scripts.OnClick(rows[2])
-eq(db.hidden.LibDBIcon10_DBM, nil, "checking shows it again")
+-- The dual list box: Hidden | Shown in bar, arrows, Up / Down.
+local lists, arrows = O._test.lists, O._test.arrows
+local function labels(list)
+    local t = {}
+    for _, row in ipairs(list.rows) do if row._shown then t[#t + 1] = row.label._text end end
+    return table.concat(t, ",")
+end
+local function rowOf(list, name)
+    for _, row in ipairs(list.rows) do if row._shown and row.name == name then return row end end
+end
+local function click(w) w._scripts.OnClick(w, "LeftButton") end
 
--- A button collected later appears on the next refresh.
+eq(labels(lists.hidden), "", "nothing hidden yet")
+eq(lists.hidden.empty._shown, true, "...and the hidden list says so")
+eq(labels(lists.shown), "BugSack |cff808080(hidden by its addon)|r,DBM", "shown list in bar order, owner-hidden greyed")
+eq(arrows.show._enabled, false, "no selection: arrows off")
+eq(arrows.hide._enabled, false, "no selection: arrows off (hide)")
+
+-- Select DBM in the shown list, hide it with the < arrow.
+click(rowOf(lists.shown, "LibDBIcon10_DBM"))
+eq(O._test.selected(), "LibDBIcon10_DBM", "row click selects")
+eq(rowOf(lists.shown, "LibDBIcon10_DBM").mark._shown, true, "the selection is marked")
+eq(arrows.hide._enabled, true, "a shown selection enables <")
+eq(arrows.show._enabled, false, "...not >")
+eq(arrows.up._enabled, true, "DBM is second: Up on")
+eq(arrows.down._enabled, false, "...Down off (last)")
+click(arrows.hide)
+eq(db.hidden.LibDBIcon10_DBM, true, "< hides it")
+eq(labels(lists.hidden), "DBM", "it moved to the hidden list")
+eq(rowOf(lists.hidden, "LibDBIcon10_DBM").mark._shown, true, "still selected over there")
+eq(arrows.show._enabled, true, "> now on")
+click(arrows.show)
+eq(db.hidden.LibDBIcon10_DBM, nil, "> shows it again")
+
+-- Double-click moves across too.
+rowOf(lists.shown, "LibDBIcon10_DBM")._scripts.OnDoubleClick(rowOf(lists.shown, "LibDBIcon10_DBM"))
+eq(db.hidden.LibDBIcon10_DBM, true, "double-click hides")
+rowOf(lists.hidden, "LibDBIcon10_DBM")._scripts.OnDoubleClick(rowOf(lists.hidden, "LibDBIcon10_DBM"))
+eq(db.hidden.LibDBIcon10_DBM, nil, "double-click shows")
+
+-- Up / Down set the bar order, which is saved.
+click(rowOf(lists.shown, "LibDBIcon10_DBM"))
+click(arrows.up)
+eq(labels(lists.shown), "DBM,BugSack |cff808080(hidden by its addon)|r", "Up moved DBM first")
+eq(names(), "LibDBIcon10_DBM,LibDBIcon10_BugSack", "...in the collector's order too")
+eq(db.order[1], "LibDBIcon10_DBM", "order saved")
+eq(arrows.up._enabled, false, "first: Up off")
+eq(arrows.down._enabled, true, "first: Down on")
+
+-- A button collected later appears in the list, after the ordered ones.
 WoW.LDBI():Register("Attune_Broker", { icon = "a" }, {})
 WoW.flushTimers(0)
-eq(#rows, 3, "the list follows the collector")
+eq(names(), "LibDBIcon10_DBM,LibDBIcon10_BugSack,LibDBIcon10_Attune_Broker", "unordered newcomer goes last")
+eq(labels(lists.shown), "DBM,BugSack |cff808080(hidden by its addon)|r,Attune_Broker", "the list follows the collector")
+
+-- Up/Down step over hidden buttons: hide BugSack, move Attune up past it.
+GlassMiniMapBar.SetHidden("LibDBIcon10_BugSack", true)
+click(rowOf(lists.shown, "LibDBIcon10_Attune_Broker"))
+click(arrows.up)
+eq(names(), "LibDBIcon10_Attune_Broker,LibDBIcon10_BugSack,LibDBIcon10_DBM", "swapped with the shown neighbour (DBM)")
+
+-- Many buttons: the list scrolls, and keeps the selection in view.
+for i = 1, 12 do WoW.LDBI():Register("Extra" .. i, { icon = "x" }, {}) end
+WoW.flushTimers(0)
+eq(#lists.shown.items, 14, "all shown buttons listed")
+lists.shown.frame._scripts.OnMouseWheel(lists.shown.frame, -1)
+eq(lists.shown.offset, 1, "the wheel scrolls, even away from the selection")
+lists.shown.frame._scripts.OnMouseWheel(lists.shown.frame, -50)
+eq(lists.shown.offset, 14 - 8, "...and stops at the end")
+click(rowOf(lists.shown, "LibDBIcon10_Extra9"))
+click(arrows.down)
+check(rowOf(lists.shown, "LibDBIcon10_Extra9") ~= nil, "a moved selection stays in view")
+
+-- The order survives a reload; unknown names keep their place.
+local saved = GlassMiniMapBarDB
+loadAddon({ db = saved, before = function()
+    WoW.LDBI():Register("DBM", { icon = "dbm" }, {})
+    WoW.LDBI():Register("Attune_Broker", { icon = "a" }, {})
+    WoW.LDBI():Register("Zzz", { icon = "z" }, {})
+end })
+eq(names(), "LibDBIcon10_Attune_Broker,LibDBIcon10_DBM,LibDBIcon10_Zzz", "saved order applied at login")
 
 done("test_options")

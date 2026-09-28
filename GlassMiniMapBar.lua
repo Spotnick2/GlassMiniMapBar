@@ -12,6 +12,8 @@
 --   animate    the bar grows out of the launcher and shrinks back
 --   lastUsed   launcher wears the last button used; right-click repeats it
 --   last       { name = , mouse = } the last button clicked in the bar
+--   order      button names in the user's order (Up/Down in the options);
+--              names not collected this session keep their place
 
 GlassMiniMapBar = GlassMiniMapBar or {}
 local ADDON = ...
@@ -47,6 +49,14 @@ function GlassMiniMapBar.LoadDB(saved)
     if not Bar.ARROWS[db.direction] and db.direction ~= "auto" then db.direction = "auto" end
     for k in pairs(GlassMiniMapBar.LIMITS) do db[k] = clamp(k, db[k]) end
     if type(db.last) ~= "table" or type(db.last.name) ~= "string" then db.last = nil end
+    local order = {}
+    if type(db.order) == "table" then
+        for _, name in ipairs(db.order) do
+            if type(name) == "string" then order[#order + 1] = name end
+        end
+    end
+    db.order = order
+    Collector.order = order
     GlassMiniMapBar.db = db
     return db
 end
@@ -70,6 +80,31 @@ function GlassMiniMapBar.SetHidden(name, hidden)
     db.hidden[name] = hidden and true or nil
     Bar.Layout()
     Bar.UpdateLauncherIcon()
+end
+
+-- Move a shown button `delta` places (-1 up, +1 down) among the SHOWN
+-- buttons: hidden ones in between are stepped over. Returns true if it moved.
+function GlassMiniMapBar.MoveButton(name, delta)
+    local shown = {}
+    for _, e in ipairs(Collector.entries) do
+        if not db.hidden[e.name] then shown[#shown + 1] = e.name end
+    end
+    local i
+    for k, n in ipairs(shown) do if n == name then i = k end end
+    local other = i and shown[i + delta]
+    if not other then return false end
+    -- The full order: everything collected, in its current order, then any
+    -- saved name not collected this session (its addon may be off today).
+    local full, at, seen = {}, {}, {}
+    for _, e in ipairs(Collector.entries) do full[#full + 1] = e.name; seen[e.name] = true end
+    for _, n in ipairs(db.order) do if not seen[n] then full[#full + 1] = n; seen[n] = true end end
+    for k, n in ipairs(full) do at[n] = k end
+    full[at[name]], full[at[other]] = other, name
+    db.order = full
+    Collector.order = full
+    Collector.Sort()
+    Bar.Layout()
+    return true
 end
 
 function GlassMiniMapBar.OpenOptions()

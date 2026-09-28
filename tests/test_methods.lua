@@ -49,6 +49,20 @@ for _, w in ipairs(WoW.frames) do
         w._scripts.OnClick(w, "LeftButton")
     end
 end
+-- The list rows (children of the list frames): select, double-click, scroll.
+for _, list in pairs(GlassMiniMapBar.Options._test.lists) do
+    for _, row in ipairs(list.rows) do
+        if row._shown then
+            row._scripts.OnClick(row, "LeftButton")
+            row._scripts.OnDoubleClick(row, "LeftButton")
+        end
+    end
+    list.frame._scripts.OnMouseWheel(list.frame, -1)
+end
+for _, k in ipairs({ "up", "down", "show", "hide" }) do
+    local b = GlassMiniMapBar.Options._test.arrows[k]
+    b._scripts.OnClick(b, "LeftButton")
+end
 WoW.flushTimers()
 for _, k in ipairs({ "skin", "lastUsed" }) do GlassMiniMapBar.Set(k, false); GlassMiniMapBar.Set(k, true) end
 for _, d in ipairs({ "left", "right", "up", "down", "auto" }) do GlassMiniMapBar.Set("direction", d) end

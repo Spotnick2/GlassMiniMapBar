@@ -153,6 +153,8 @@ function Methods.RegisterForClicks(w, ...) w._clicks = { ... } end
 function Methods.RegisterForDrag(w, ...) w._drag = { ... } end
 function Methods.IsMouseOver(w) return WoW.mouseOver[w] == true end
 function Methods.GetChecked(w) return w._checked == true end
+function Methods.SetEnabled(w, v) w._enabled = v and true or false end
+function Methods.IsEnabled(w) return w._enabled ~= false end
 function Methods.SetChecked(w, v) w._checked = v and true or false end
 function Methods.SetText(w, t) w._text = t end
 function Methods.GetText(w) return w._text end

@@ -173,13 +173,23 @@ local function hookClicks(btn, entry)
     end
 end
 
+-- The user's order: set by the core to the saved list of button names.
+-- Ordered buttons come first, in that order; the rest follow alphabetically.
+Collector.order = {}
+
 local function sortEntries()
+    local rank = {}
+    for i, name in ipairs(Collector.order) do rank[name] = i end
     table.sort(Collector.entries, function(a, b)
+        local ra, rb = rank[a.name], rank[b.name]
+        if ra and rb then return ra < rb end
+        if ra or rb then return ra ~= nil end
         local x, y = a.display:lower(), b.display:lower()
         if x ~= y then return x < y end
         return a.name < b.name
     end)
 end
+Collector.Sort = sortEntries
 
 -- Take `btn` into the bar. Returns the entry, or nil when it can't be taken.
 function Collector.Grab(btn)
