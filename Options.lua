@@ -13,7 +13,6 @@ local Collector = GlassMiniMapBar.Collector
 
 local panel
 local controls = {}              -- widgets that mirror a setting: { refresh = fn }
-local rows = {}                  -- button list checkboxes, reused across refreshes
 
 -- A check button with a label we own (template label fields have moved
 -- between UI versions).
@@ -100,42 +99,168 @@ local function cycle(parent, anchor)
     return b
 end
 
-local listTop, listNote
-local COLUMN_WIDTH, ROW_HEIGHT, PER_COLUMN = 210, 24, 14
+-- The button lists: a classic dual list box. Hidden on the left, Shown in
+-- bar on the right (in bar order), arrows between them, Up/Down beside the
+-- shown list. One selection across both lists; double-click moves a button
+-- across. The mouse wheel scrolls a list longer than its rows.
+local LIST_W, ROW_H, ROWS = 240, 20, 8
+local listTop
+local lists = {}                 -- hidden, shown: { frame, rows, items, offset, empty }
+local arrows = {}                -- show, hide, up, down
+local selected                   -- a button name, or nil
 
--- One checkbox per collected button, two or three columns, checked = shown.
-local function refreshList()
-    local entries = Collector.entries
-    for i, e in ipairs(entries) do
-        local cb = rows[i]
-        if not cb then
-            cb = checkbox(panel, "")
-            cb:SetScript("OnClick", function(self)
-                GlassMiniMapBar.SetHidden(self.entryName, not self:GetChecked())
-            end)
-            rows[i] = cb
-        end
-        local col, row = math.floor((i - 1) / PER_COLUMN), (i - 1) % PER_COLUMN
-        cb:ClearAllPoints()
-        cb:SetPoint("TOPLEFT", listTop, "BOTTOMLEFT", col * COLUMN_WIDTH, -4 - row * ROW_HEIGHT)
-        cb.entryName = e.name
-        cb.label:SetText(e.wanted and e.display or (e.display .. " |cff808080(hidden by its addon)|r"))
-        cb:SetChecked(not GlassMiniMapBar.db.hidden[e.name])
-        cb:Show()
-        cb.label:Show()
-    end
-    for i = #entries + 1, #rows do
-        rows[i]:Hide()
-        rows[i].label:Hide()
-    end
-    listNote:SetShown(#entries == 0)
+local function greyed(e)
+    return e.wanted and e.display or (e.display .. " |cff808080(hidden by its addon)|r")
 end
 
--- Called on every collector change; a no-op until the panel was first shown.
+local refreshList
+
+local function moveAcross(name)
+    if not name then return end
+    GlassMiniMapBar.SetHidden(name, not GlassMiniMapBar.db.hidden[name])
+    refreshList(true)
+end
+
+-- `follow`: bring the selection into view (after a select, move or re-sort);
+-- the mouse wheel passes false so it can scroll away from it.
+local function fill(list, follow)
+    local items = list.items
+    local maxOffset = math.max(0, #items - ROWS)
+    for i, e in ipairs(items) do
+        if follow and e.name == selected then
+            if i <= list.offset then list.offset = i - 1
+            elseif i > list.offset + ROWS then list.offset = i - ROWS end
+        end
+    end
+    list.offset = math.max(0, math.min(list.offset, maxOffset))
+    for r, row in ipairs(list.rows) do
+        local e = items[r + list.offset]
+        row.name = e and e.name
+        row.label:SetText(e and greyed(e) or "")
+        row.mark:SetShown(e ~= nil and e.name == selected)
+        row:SetShown(e ~= nil)
+    end
+    list.empty:SetShown(#items == 0)
+end
+
+local function makeList(key, title, anchor, x, emptyText)
+    local f = CreateFrame("Frame", nil, panel)
+    f:SetSize(LIST_W, ROWS * ROW_H + 8)
+    f:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", x, -30)
+    local bg = f:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints(f)
+    bg:SetColorTexture(0, 0, 0, 0.45)
+    for _, side in ipairs({ "TOP", "BOTTOM", "LEFT", "RIGHT" }) do
+        local t = f:CreateTexture(nil, "BORDER")
+        t:SetColorTexture(0.62, 0.5, 0.22, 0.9)
+        if side == "TOP" or side == "BOTTOM" then
+            t:SetHeight(1); t:SetPoint(side .. "LEFT"); t:SetPoint(side .. "RIGHT")
+        else
+            t:SetWidth(1); t:SetPoint("TOP" .. side); t:SetPoint("BOTTOM" .. side)
+        end
+    end
+    local head = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    head:SetPoint("BOTTOMLEFT", f, "TOPLEFT", 2, 4)
+    head:SetText(title)
+    local empty = f:CreateFontString(nil, "OVERLAY", "GameFontDisable")
+    empty:SetPoint("CENTER")
+    empty:SetText(emptyText)
+
+    local list = { frame = f, rows = {}, items = {}, offset = 0, empty = empty }
+    for r = 1, ROWS do
+        local row = CreateFrame("Button", nil, f)
+        row:SetSize(LIST_W - 8, ROW_H)
+        row:SetPoint("TOPLEFT", f, "TOPLEFT", 4, -4 - (r - 1) * ROW_H)
+        local hl = row:CreateTexture(nil, "HIGHLIGHT")
+        hl:SetAllPoints(row)
+        hl:SetColorTexture(1, 1, 1, 0.08)
+        local mark = row:CreateTexture(nil, "ARTWORK")
+        mark:SetAllPoints(row)
+        mark:SetColorTexture(0.85, 0.68, 0.12, 0.35)
+        mark:Hide()
+        row.mark = mark
+        local label = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+        label:SetPoint("LEFT", row, "LEFT", 6, 0)
+        label:SetPoint("RIGHT", row, "RIGHT", -4, 0)
+        label:SetJustifyH("LEFT")
+        row.label = label
+        row:SetScript("OnClick", function(self)
+            selected = self.name
+            refreshList(true)
+        end)
+        row:SetScript("OnDoubleClick", function(self) moveAcross(self.name) end)
+        list.rows[r] = row
+    end
+    f:EnableMouseWheel(true)
+    f:SetScript("OnMouseWheel", function(_, delta)
+        list.offset = list.offset - delta
+        fill(list, false)
+    end)
+    lists[key] = list
+    return f
+end
+
+-- `follow` brings the selection into view: true after a select or move,
+-- false for background refreshes (scans, other addons' Show/Hide), which
+-- must not yank a list the user is scrolling.
+function refreshList(follow)
+    local hidden = GlassMiniMapBar.db.hidden
+    local h, s, found = {}, {}, false
+    for _, e in ipairs(Collector.entries) do
+        if hidden[e.name] then h[#h + 1] = e else s[#s + 1] = e end
+        if e.name == selected then found = true end
+    end
+    if not found then selected = nil end
+    lists.hidden.items, lists.shown.items = h, s
+    lists.shown.empty:SetText(#Collector.entries == 0 and "No buttons collected yet (/gmb scan)"
+        or "All buttons are hidden")
+    fill(lists.hidden, follow)
+    fill(lists.shown, follow)
+    -- Up/Down use the same neighbours as MoveButton.
+    local movable, at = selected and Collector.Movable(hidden, selected) or {}, nil
+    for i, n in ipairs(movable) do if n == selected then at = i end end
+    arrows.show:SetEnabled(selected ~= nil and hidden[selected] == true)
+    arrows.hide:SetEnabled(selected ~= nil and not hidden[selected])
+    arrows.up:SetEnabled(at ~= nil and at > 1)
+    arrows.down:SetEnabled(at ~= nil and at < #movable)
+end
+
+local function buildLists(anchor)
+    listTop = heading(panel, "Buttons", anchor, -18)
+    local hint = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    hint:SetPoint("TOPLEFT", listTop, "BOTTOMLEFT", 0, -4)
+    hint:SetText("Select a button, then use the arrows to show or hide it (or double-click it). Up / Down set its place in the bar.")
+
+    local left = makeList("hidden", "Hidden", listTop, 0, "No hidden buttons")
+    local right = makeList("shown", "Shown in bar", listTop, LIST_W + 56, "No buttons collected yet (/gmb scan)")
+
+    arrows.show = button(panel, ">", 36)
+    arrows.show:SetPoint("BOTTOM", left, "RIGHT", 28, 4)
+    arrows.show:SetScript("OnClick", function() moveAcross(selected) end)
+    arrows.hide = button(panel, "<", 36)
+    arrows.hide:SetPoint("TOP", left, "RIGHT", 28, -4)
+    arrows.hide:SetScript("OnClick", function() moveAcross(selected) end)
+
+    arrows.up = button(panel, "Up", 60)
+    arrows.up:SetPoint("BOTTOMLEFT", right, "RIGHT", 8, 4)
+    arrows.up:SetScript("OnClick", function()
+        if selected then GlassMiniMapBar.MoveButton(selected, -1) end
+        refreshList(true)
+    end)
+    arrows.down = button(panel, "Down", 60)
+    arrows.down:SetPoint("TOPLEFT", right, "RIGHT", 8, -4)
+    arrows.down:SetScript("OnClick", function()
+        if selected then GlassMiniMapBar.MoveButton(selected, 1) end
+        refreshList(true)
+    end)
+end
+
+-- Called on every collector change; a no-op until the panel is fully built
+-- (arrows.down is made last: a build that threw half-way stays a no-op).
 function Options.Refresh()
-    if not (listTop and GlassMiniMapBar.db) then return end
+    if not (arrows.down and GlassMiniMapBar.db) then return end
     for _, c in ipairs(controls) do c.refresh() end
-    refreshList()
+    refreshList(false)
 end
 
 local function build()
@@ -165,10 +290,7 @@ local function build()
     a = stepper(panel, a, "perRow", "Buttons per row", "%d")
     a = stepper(panel, a, "buttonSize", "Button size", "%d")
 
-    listTop = heading(panel, "Buttons (uncheck to hide)", a, -18)
-    listNote = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    listNote:SetPoint("TOPLEFT", listTop, "BOTTOMLEFT", 0, -8)
-    listNote:SetText("No minimap buttons collected yet. Try /gmb scan.")
+    buildLists(a)
 end
 
 -- Called at ADDON_LOADED: the panel is registered then, built on first show.
@@ -188,4 +310,9 @@ function Options.Register()
     return panel
 end
 
-Options._test = { panel = function() return panel end, rows = rows }
+Options._test = {
+    panel = function() return panel end,
+    lists = lists,
+    arrows = arrows,
+    selected = function() return selected end,
+}

@@ -13,7 +13,8 @@ eq(type(db.minimap), "table", "LibDBIcon table")
 eq(db, GlassMiniMapBar.db, "the addon uses the saved table itself")
 
 loadAddon({ db = { hidden = { LibDBIcon10_DBM = true }, minimap = { minimapPos = 200 }, openOn = "sideways",
-                   perRow = 500, buttonSize = "big", direction = "north", last = { mouse = "LeftButton" } } })
+                   perRow = 500, buttonSize = "big", direction = "north", last = { mouse = "LeftButton" },
+                   order = { "LibDBIcon10_DBM", 7, false, "AltStableMinimapButton" } } })
 db = GlassMiniMapBarDB
 eq(db.hidden.LibDBIcon10_DBM, true, "hidden buttons kept")
 eq(db.minimap.minimapPos, 200, "launcher position kept")
@@ -22,6 +23,8 @@ eq(db.perRow, 30, "perRow clamped")
 eq(db.buttonSize, 28, "non-number size reset")
 eq(db.direction, "auto", "bad direction repaired")
 eq(db.last, nil, "a 'last' without a name is dropped")
+eq(table.concat(db.order, ","), "LibDBIcon10_DBM,AltStableMinimapButton", "order kept, junk entries dropped")
+eq(GlassMiniMapBar.Collector.orderOf(), db.order, "the collector sorts by the saved order itself")
 
 GlassMiniMapBar.Set("buttonSize", 3)
 eq(db.buttonSize, 20, "Set clamps to the limits")

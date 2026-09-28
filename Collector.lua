@@ -173,13 +173,23 @@ local function hookClicks(btn, entry)
     end
 end
 
+-- The user's order, read through the core so the saved list is the only
+-- copy. Ordered buttons come first, in that order; the rest alphabetically.
+Collector.orderOf = function() return {} end
+
 local function sortEntries()
+    local rank = {}
+    for i, name in ipairs(Collector.orderOf()) do rank[name] = i end
     table.sort(Collector.entries, function(a, b)
+        local ra, rb = rank[a.name], rank[b.name]
+        if ra and rb then return ra < rb end
+        if ra or rb then return ra ~= nil end
         local x, y = a.display:lower(), b.display:lower()
         if x ~= y then return x < y end
         return a.name < b.name
     end)
 end
+Collector.Sort = sortEntries
 
 -- Take `btn` into the bar. Returns the entry, or nil when it can't be taken.
 function Collector.Grab(btn)
@@ -262,11 +272,27 @@ function Collector.OnIconCreated(_, btn)
     if Collector.Reject(btn, parent) == nil and Collector.Grab(btn) then Collector.Changed() end
 end
 
--- Entries the bar should show: wanted by their addon, not hidden by the user.
+-- THE rule for "in the bar": wanted by its addon, not hidden by the user.
+function Collector.InBar(e, hidden)
+    return e.wanted and not hidden[e.name]
+end
+
+-- Entries the bar shows, in order.
 function Collector.Visible(hidden)
     local list = {}
     for _, e in ipairs(Collector.entries) do
-        if e.wanted and not hidden[e.name] then list[#list + 1] = e end
+        if Collector.InBar(e, hidden) then list[#list + 1] = e end
+    end
+    return list
+end
+
+-- The names Up/Down moves `name` among: the buttons in the bar, plus `name`
+-- itself even when its addon hid it. Empty when the user hid `name`.
+function Collector.Movable(hidden, name)
+    local list = {}
+    if hidden[name] then return list end
+    for _, e in ipairs(Collector.entries) do
+        if Collector.InBar(e, hidden) or e.name == name then list[#list + 1] = e.name end
     end
     return list
 end
