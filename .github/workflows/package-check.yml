@@ -1,0 +1,91 @@
+name: Package check
+
+# Dry run only. Releases are built by CurseForge's own packager from the tag
+# webhook, against the same .pkgmeta - this job exists so a packaging mistake
+# surfaces on a pull request instead of in a published zip (Priestly's pattern).
+#
+# -d is the real no-upload switch: merely leaving CF_API_KEY out still lets the
+# packager cut a GitHub release.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Lua 5.1
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lua5.1
+
+      # WoW runs Lua 5.1, so the tests do too. tests/run.ps1 is the Windows
+      # entry point for the same files. find, not globs: Libs/ nests deeper
+      # than one level.
+      - name: Syntax-check every shipped Lua file
+        run: |
+          count=$(find . -name '*.lua' -not -path './.git/*' | wc -l)
+          test "$count" -gt 0 || { echo "no Lua files found - the check would prove nothing"; exit 1; }
+          echo "checking $count files"
+          find . -name '*.lua' -not -path './.git/*' -print0 | xargs -0 luac5.1 -p
+
+      # Without ../GlassUnitFrames and the API dump (local only), test_toc skips
+      # the upstream-copy comparison and test_methods skips the method check.
+      - name: Unit tests
+        run: |
+          for f in tests/test_*.lua; do
+            echo "-- $f"
+            lua5.1 "$f" || exit 1
+          done
+
+      # Pinned to a SHA, not the moving v2 tag (the siblings pin the same one).
+      - name: Package (dry run)
+        uses: BigWigsMods/packager@e50a250f8705041e40f2fa1ddcb280a686d65aa0
+        with:
+          args: -d
+
+      # The zip is what players install, so assert its SHAPE rather than
+      # trusting .pkgmeta to have been read the way it was meant: every file
+      # the TOC loads, the textures and the licence are in it, and nothing
+      # private is.
+      - name: The package has every addon file, and nothing private
+        run: |
+          zip=$(ls .release/*.zip | head -1)
+          rm -rf unpacked && mkdir unpacked && unzip -q "$zip" -d unpacked
+          root=unpacked/GlassMiniMapBar
+          fail=0
+          test -f "$root/GlassMiniMapBar.toc" || { echo "missing GlassMiniMapBar.toc"; fail=1; }
+          test -f "$root/LICENSE" || { echo "missing LICENSE (GPLv3 requires it)"; fail=1; }
+          while IFS= read -r line; do
+            f=$(printf '%s' "$line" | tr -d '\r' | tr '\\' '/')
+            case "$f" in \#*|'') continue ;; esac
+            test -f "$root/$f" || { echo "missing TOC file: $f"; fail=1; }
+          done < GlassMiniMapBar.toc
+          for t in Media/*.tga; do
+            test -f "$root/$t" || { echo "missing texture: $t"; fail=1; }
+          done
+          for p in tests Tools docs .claude .github CLAUDE.md README.md CHANGELOG.md; do
+            test ! -e "$root/$p" || { echo "private file shipped: $p"; fail=1; }
+          done
+          stray=$(find "$root" -name '__pycache__' -o -name '*.pyc' -o -name 'nul' | head -5)
+          test -z "$stray" || { echo "stray files shipped: $stray"; fail=1; }
+          test "$(ls unpacked)" = "GlassMiniMapBar" || { echo "unexpected top-level folders: $(ls unpacked)"; fail=1; }
+          exit $fail
+
+      # .release is hidden, and upload-artifact@v4 skips hidden content by
+      # default: without include-hidden-files the upload finds nothing.
+      - name: Keep the zip for inspection
+        uses: actions/upload-artifact@v4
+        with:
+          name: glassminimapbar-package
+          path: .release/*.zip
+          include-hidden-files: true
+          if-no-files-found: error

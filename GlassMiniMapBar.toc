@@ -4,6 +4,7 @@
 ## Author: Spotnick
 ## Version: @project-version@
 ## SavedVariables: GlassMiniMapBarDB
+## X-License: GPL-3.0
 ## IconTexture: Interface\Icons\misc_arrowleft
 
 Libs\LibStub\LibStub.lua

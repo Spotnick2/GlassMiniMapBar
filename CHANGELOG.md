@@ -1,10 +1,28 @@
-# Changelog
+# Glass MiniMap Bar Changelog
 
-## Unreleased
+## v1.0.0 - 2026-09-27
 
-- First version: the minimap's addon buttons collected into one liquid-glass bar that opens
-  from a glass launcher on the minimap ring (on hover or on click).
-- Options > AddOns > Glass MiniMap Bar: move buttons between Hidden and Shown in bar, and set
-  their order in the bar with Up / Down.
-- Optional: the launcher wears the last button you used, and right-clicking it uses that
-  button again.
+First release, for World of Warcraft: Forever (client 1.60.1).
+
+**If you want more, use [HidingBar](https://www.curseforge.com/wow/addons/hidingbar)**: this is a
+small, streamlined take on it.
+
+### Read this if you use HidingBar
+
+- **Disable HidingBar (and HidingBar_Options) first.** Both collect the same minimap buttons and
+  would fight over them.
+
+### Added
+
+- **Your addons' minimap buttons, gathered into one liquid-glass bar** that grows out of a glass
+  launcher on the minimap ring. Hover the launcher to open it (or set it to open on click); it
+  closes by itself when the mouse leaves, and stays open while you're in a menu one of its buttons
+  opened.
+- **A round glass skin** on every collected button, matching the bar. It can be turned off.
+- **Hide and order the buttons** in Options → AddOns → Glass MiniMap Bar: move buttons between
+  Hidden and Shown in bar, and set their place with Up / Down.
+- **Last used** (optional): the launcher shows the last button you used, and right-clicking the
+  launcher uses it again.
+- The bar opens toward the middle of the screen from wherever the launcher sits, and can wrap into
+  rows or columns. Direction, buttons per row, button size and the closing delay are all options.
+- `/gmb` opens the options; `/gmb scan` lists what was collected and what was skipped.
