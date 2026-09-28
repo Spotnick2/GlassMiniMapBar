@@ -28,7 +28,7 @@ for size, S in pairs(GlassMiniMapBar.Glass.SIZES) do
         check(io.open(f, "rb") ~= nil, size .. " texture exists: " .. f)
     end
 end
-for _, t in ipairs({ "grain", "orb_mask", "orb_rim", "orb_dark", "orb_shadow" }) do
+for _, t in ipairs({ "grain", "track_fade", "orb_mask", "orb_rim", "orb_dark", "orb_shadow" }) do
     check(io.open("Media/" .. t .. ".tga", "rb") ~= nil, "texture exists: " .. t)
 end
 
