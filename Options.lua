@@ -118,7 +118,7 @@ local refreshList
 local function moveAcross(name)
     if not name then return end
     GlassMiniMapBar.SetHidden(name, not GlassMiniMapBar.db.hidden[name])
-    refreshList()
+    refreshList(true)
 end
 
 -- `follow`: bring the selection into view (after a select, move or re-sort);
@@ -186,7 +186,7 @@ local function makeList(key, title, anchor, x, emptyText)
         row.label = label
         row:SetScript("OnClick", function(self)
             selected = self.name
-            refreshList()
+            refreshList(true)
         end)
         row:SetScript("OnDoubleClick", function(self) moveAcross(self.name) end)
         list.rows[r] = row
@@ -200,22 +200,29 @@ local function makeList(key, title, anchor, x, emptyText)
     return f
 end
 
-function refreshList()
+-- `follow` brings the selection into view: true after a select or move,
+-- false for background refreshes (scans, other addons' Show/Hide), which
+-- must not yank a list the user is scrolling.
+function refreshList(follow)
     local hidden = GlassMiniMapBar.db.hidden
-    local h, s, found, at = {}, {}, false, nil
+    local h, s, found = {}, {}, false
     for _, e in ipairs(Collector.entries) do
         if hidden[e.name] then h[#h + 1] = e else s[#s + 1] = e end
         if e.name == selected then found = true end
     end
     if not found then selected = nil end
-    for i, e in ipairs(s) do if e.name == selected then at = i end end
     lists.hidden.items, lists.shown.items = h, s
-    fill(lists.hidden, true)
-    fill(lists.shown, true)
+    lists.shown.empty:SetText(#Collector.entries == 0 and "No buttons collected yet (/gmb scan)"
+        or "All buttons are hidden")
+    fill(lists.hidden, follow)
+    fill(lists.shown, follow)
+    -- Up/Down use the same neighbours as MoveButton.
+    local movable, at = selected and Collector.Movable(hidden, selected) or {}, nil
+    for i, n in ipairs(movable) do if n == selected then at = i end end
     arrows.show:SetEnabled(selected ~= nil and hidden[selected] == true)
-    arrows.hide:SetEnabled(at ~= nil)
+    arrows.hide:SetEnabled(selected ~= nil and not hidden[selected])
     arrows.up:SetEnabled(at ~= nil and at > 1)
-    arrows.down:SetEnabled(at ~= nil and at < #s)
+    arrows.down:SetEnabled(at ~= nil and at < #movable)
 end
 
 local function buildLists(anchor)
@@ -238,21 +245,22 @@ local function buildLists(anchor)
     arrows.up:SetPoint("BOTTOMLEFT", right, "RIGHT", 8, 4)
     arrows.up:SetScript("OnClick", function()
         if selected then GlassMiniMapBar.MoveButton(selected, -1) end
-        refreshList()
+        refreshList(true)
     end)
     arrows.down = button(panel, "Down", 60)
     arrows.down:SetPoint("TOPLEFT", right, "RIGHT", 8, -4)
     arrows.down:SetScript("OnClick", function()
         if selected then GlassMiniMapBar.MoveButton(selected, 1) end
-        refreshList()
+        refreshList(true)
     end)
 end
 
--- Called on every collector change; a no-op until the panel was first shown.
+-- Called on every collector change; a no-op until the panel is fully built
+-- (arrows.down is made last: a build that threw half-way stays a no-op).
 function Options.Refresh()
-    if not (listTop and GlassMiniMapBar.db) then return end
+    if not (arrows.down and GlassMiniMapBar.db) then return end
     for _, c in ipairs(controls) do c.refresh() end
-    refreshList()
+    refreshList(false)
 end
 
 local function build()

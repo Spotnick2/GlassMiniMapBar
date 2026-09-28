@@ -84,7 +84,7 @@ eq(O._test.selected(), "LibDBIcon10_DBM", "row click selects")
 eq(rowOf(lists.shown, "LibDBIcon10_DBM").mark._shown, true, "the selection is marked")
 eq(arrows.hide._enabled, true, "a shown selection enables <")
 eq(arrows.show._enabled, false, "...not >")
-eq(arrows.up._enabled, true, "DBM is second: Up on")
+eq(arrows.up._enabled, false, "DBM is second, but BugSack above it is hidden by its addon: Up off")
 eq(arrows.down._enabled, false, "...Down off (last)")
 click(arrows.hide)
 eq(db.hidden.LibDBIcon10_DBM, true, "< hides it")
@@ -100,10 +100,19 @@ eq(db.hidden.LibDBIcon10_DBM, true, "double-click hides")
 rowOf(lists.hidden, "LibDBIcon10_DBM")._scripts.OnDoubleClick(rowOf(lists.hidden, "LibDBIcon10_DBM"))
 eq(db.hidden.LibDBIcon10_DBM, nil, "double-click shows")
 
--- Up / Down set the bar order, which is saved.
+-- Up / Down never swap with a button its addon hid: the bar wouldn't change.
+-- BugSack (hidden by its addon) sits above DBM: DBM has no neighbour up.
 click(rowOf(lists.shown, "LibDBIcon10_DBM"))
+eq(arrows.up._enabled, false, "Up off: the only button above is one its addon hid")
+check(not GlassMiniMapBar.MoveButton("LibDBIcon10_DBM", -1), "MoveButton refuses the same move")
+eq(names(), "LibDBIcon10_BugSack,LibDBIcon10_DBM", "order unchanged")
+
+-- With BugSack back in the bar, Up works and the order is saved.
+entry("LibDBIcon10_BugSack").btn:Show(); WoW.flushTimers(0)
+click(rowOf(lists.shown, "LibDBIcon10_DBM"))
+eq(arrows.up._enabled, true, "Up on once BugSack is in the bar")
 click(arrows.up)
-eq(labels(lists.shown), "DBM,BugSack |cff808080(hidden by its addon)|r", "Up moved DBM first")
+eq(labels(lists.shown), "DBM,BugSack", "Up moved DBM first")
 eq(names(), "LibDBIcon10_DBM,LibDBIcon10_BugSack", "...in the collector's order too")
 eq(db.order[1], "LibDBIcon10_DBM", "order saved")
 eq(arrows.up._enabled, false, "first: Up off")
@@ -113,27 +122,38 @@ eq(arrows.down._enabled, true, "first: Down on")
 WoW.LDBI():Register("Attune_Broker", { icon = "a" }, {})
 WoW.flushTimers(0)
 eq(names(), "LibDBIcon10_DBM,LibDBIcon10_BugSack,LibDBIcon10_Attune_Broker", "unordered newcomer goes last")
-eq(labels(lists.shown), "DBM,BugSack |cff808080(hidden by its addon)|r,Attune_Broker", "the list follows the collector")
+eq(labels(lists.shown), "DBM,BugSack,Attune_Broker", "the list follows the collector")
 
--- Up/Down step over hidden buttons: hide BugSack, move Attune up past it.
+-- Up/Down step over buttons the user hid: hide BugSack, move Attune up past it.
 GlassMiniMapBar.SetHidden("LibDBIcon10_BugSack", true)
 click(rowOf(lists.shown, "LibDBIcon10_Attune_Broker"))
 click(arrows.up)
-eq(names(), "LibDBIcon10_Attune_Broker,LibDBIcon10_BugSack,LibDBIcon10_DBM", "swapped with the shown neighbour (DBM)")
+eq(names(), "LibDBIcon10_Attune_Broker,LibDBIcon10_BugSack,LibDBIcon10_DBM", "swapped with the neighbour in the bar (DBM)")
+
+-- Hide everything: the shown list says so, not "nothing collected".
+for _, e in ipairs(GlassMiniMapBar.Collector.entries) do GlassMiniMapBar.SetHidden(e.name, true) end
+O.Refresh()
+eq(lists.shown.empty._text, "All buttons are hidden", "all hidden: the right empty message")
+for _, e in ipairs(GlassMiniMapBar.Collector.entries) do GlassMiniMapBar.SetHidden(e.name, false) end
+O.Refresh()
 
 -- Many buttons: the list scrolls, and keeps the selection in view.
 for i = 1, 12 do WoW.LDBI():Register("Extra" .. i, { icon = "x" }, {}) end
 WoW.flushTimers(0)
-eq(#lists.shown.items, 14, "all shown buttons listed")
+eq(#lists.shown.items, 15, "all shown buttons listed")
 lists.shown.frame._scripts.OnMouseWheel(lists.shown.frame, -1)
 eq(lists.shown.offset, 1, "the wheel scrolls, even away from the selection")
 lists.shown.frame._scripts.OnMouseWheel(lists.shown.frame, -50)
-eq(lists.shown.offset, 14 - 8, "...and stops at the end")
+eq(lists.shown.offset, 15 - 8, "...and stops at the end")
+-- A background refresh (another addon's Show/Hide, a scan) doesn't yank it back.
+entry("LibDBIcon10_DBM").btn:Hide(); WoW.flushTimers(0)
+eq(lists.shown.offset, 15 - 8, "background refresh keeps the scroll position")
+entry("LibDBIcon10_DBM").btn:Show(); WoW.flushTimers(0)
 click(rowOf(lists.shown, "LibDBIcon10_Extra9"))
 click(arrows.down)
 check(rowOf(lists.shown, "LibDBIcon10_Extra9") ~= nil, "a moved selection stays in view")
 
--- The order survives a reload; unknown names keep their place.
+-- The order survives a reload.
 local saved = GlassMiniMapBarDB
 loadAddon({ db = saved, before = function()
     WoW.LDBI():Register("DBM", { icon = "dbm" }, {})
@@ -141,5 +161,16 @@ loadAddon({ db = saved, before = function()
     WoW.LDBI():Register("Zzz", { icon = "z" }, {})
 end })
 eq(names(), "LibDBIcon10_Attune_Broker,LibDBIcon10_DBM,LibDBIcon10_Zzz", "saved order applied at login")
+
+-- A button not collected this session keeps its slot when others move.
+-- Saved: Attune, BugSack, DBM. BugSack's addon is off today.
+loadAddon({ db = { order = { "LibDBIcon10_Attune_Broker", "LibDBIcon10_BugSack", "LibDBIcon10_DBM" } },
+            before = function()
+    WoW.LDBI():Register("DBM", { icon = "dbm" }, {})
+    WoW.LDBI():Register("Attune_Broker", { icon = "a" }, {})
+end })
+check(GlassMiniMapBar.MoveButton("LibDBIcon10_DBM", -1), "DBM moves up past Attune")
+eq(table.concat(GlassMiniMapBarDB.order, ","), "LibDBIcon10_DBM,LibDBIcon10_BugSack,LibDBIcon10_Attune_Broker",
+   "BugSack (absent) kept its middle slot instead of drifting to the end")
 
 done("test_options")

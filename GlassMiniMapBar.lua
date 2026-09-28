@@ -56,7 +56,6 @@ function GlassMiniMapBar.LoadDB(saved)
         end
     end
     db.order = order
-    Collector.order = order
     GlassMiniMapBar.db = db
     return db
 end
@@ -82,26 +81,26 @@ function GlassMiniMapBar.SetHidden(name, hidden)
     Bar.UpdateLauncherIcon()
 end
 
--- Move a shown button `delta` places (-1 up, +1 down) among the SHOWN
--- buttons: hidden ones in between are stepped over. Returns true if it moved.
+-- Move a button `delta` places (-1 up, +1 down) among the buttons in the
+-- bar (Collector.Movable): buttons hidden by the user or by their addon are
+-- stepped over, so every move changes the bar. Returns true if it moved.
 function GlassMiniMapBar.MoveButton(name, delta)
-    local shown = {}
-    for _, e in ipairs(Collector.entries) do
-        if not db.hidden[e.name] then shown[#shown + 1] = e.name end
-    end
+    local movable = Collector.Movable(db.hidden, name)
     local i
-    for k, n in ipairs(shown) do if n == name then i = k end end
-    local other = i and shown[i + delta]
+    for k, n in ipairs(movable) do if n == name then i = k end end
+    local other = i and movable[i + delta]
     if not other then return false end
-    -- The full order: everything collected, in its current order, then any
-    -- saved name not collected this session (its addon may be off today).
+    -- The full order: the saved list as it is (names not collected this
+    -- session keep their slot), then collected names never ordered, in their
+    -- current order. Collected names keep the relative order the bar shows.
     local full, at, seen = {}, {}, {}
-    for _, e in ipairs(Collector.entries) do full[#full + 1] = e.name; seen[e.name] = true end
-    for _, n in ipairs(db.order) do if not seen[n] then full[#full + 1] = n; seen[n] = true end end
+    for _, n in ipairs(db.order) do full[#full + 1] = n; seen[n] = true end
+    for _, e in ipairs(Collector.entries) do
+        if not seen[e.name] then full[#full + 1] = e.name; seen[e.name] = true end
+    end
     for k, n in ipairs(full) do at[n] = k end
     full[at[name]], full[at[other]] = other, name
     db.order = full
-    Collector.order = full
     Collector.Sort()
     Bar.Layout()
     return true
@@ -142,6 +141,7 @@ events:SetScript("OnEvent", function(self, event, arg)
     if event == "ADDON_LOADED" and arg == ADDON then
         self:UnregisterEvent("ADDON_LOADED")
         GlassMiniMapBarDB = GlassMiniMapBar.LoadDB(GlassMiniMapBarDB)
+        Collector.orderOf = function() return db.order end
         if GlassMiniMapBar.Options then GlassMiniMapBar.Options.Register() end
     elseif event == "PLAYER_LOGIN" then
         API.Try("start", start)

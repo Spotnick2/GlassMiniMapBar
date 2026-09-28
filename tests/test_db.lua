@@ -24,7 +24,7 @@ eq(db.buttonSize, 28, "non-number size reset")
 eq(db.direction, "auto", "bad direction repaired")
 eq(db.last, nil, "a 'last' without a name is dropped")
 eq(table.concat(db.order, ","), "LibDBIcon10_DBM,AltStableMinimapButton", "order kept, junk entries dropped")
-eq(GlassMiniMapBar.Collector.order, db.order, "the collector sorts by the saved order")
+eq(GlassMiniMapBar.Collector.orderOf(), db.order, "the collector sorts by the saved order itself")
 
 GlassMiniMapBar.Set("buttonSize", 3)
 eq(db.buttonSize, 20, "Set clamps to the limits")

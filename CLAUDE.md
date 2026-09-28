@@ -88,8 +88,8 @@ TOC load order: `Libs\*` → `Compat.lua` → `Glass.lua` → `Orb.lua` → `Col
 - **`Bar.lua`**: the launcher (LibDataBroker object `GlassMiniMapBar`, type `data source`,
   registered with LibDBIcon into `db.minimap`) and the bar (`GlassMiniMapBarFrame`, strata
   `MEDIUM`, `Glass.Apply(..., "large")`). Layout is rows of `perRow` in reading order, buttons
-  in the collector's order (`Collector.order`,
-  the user's, then alphabetical), scaled to `buttonSize` from their own width, at `Glass.ContentLevel`. Direction `auto` opens
+  in the collector's order (`db.order` via
+  `Collector.orderOf`, the only copy; the user's, then alphabetical), scaled to `buttonSize` from their own width, at `Glass.ContentLevel`. Direction `auto` opens
   toward the screen centre; extra lines also stack toward the centre (rows down from a top-half
   launcher, up from a bottom-half one; columns left from a right-half one), and the first line
   always sits level with the launcher. Screen halves are compared in UIParent units
@@ -108,13 +108,16 @@ TOC load order: `Libs\*` → `Compat.lua` → `Glass.lua` → `Orb.lua` → `Col
   `UICheckButtonTemplate` / `UIPanelButtonTemplate` (measured present, porting guide "UI
   templates"). The buttons are a **dual list box**: Hidden | Shown in bar (in bar order), `>` /
   `<` between them, `Up` / `Down` beside the shown list, double-click to move across, mouse wheel
-  to scroll (it may scroll away from the selection; a select or move brings it back into view).
+  to scroll (it may scroll away from the selection; a select or move brings it back into view,
+  background refreshes never do). One rule decides "in the bar": `Collector.InBar` (wanted by its
+  addon and not hidden by the user), shared by the bar, Up/Down and the arrow states.
   Plain textures and rows, no backdrop template (`SetBackdrop` isn't in the dump's widget list). Numbers use `-`/`+` steppers; `MinimalSliderWithSteppersTemplate` is also present
   if a slider is ever wanted.
   `Options.Refresh` is a no-op until the panel has been built.
 - **`GlassMiniMapBar.lua`**: `GlassMiniMapBarDB` (see the header for keys), `LoadDB` (fills,
   repairs and clamps, never wipes), `Set`, `SetHidden`, `MoveButton` (swaps with the neighbouring
-  *shown* button; the saved `order` keeps names not collected this session), startup at `PLAYER_LOGIN`, and
+  button **in the bar**, `Collector.Movable`; names not collected this session keep their slot in
+  the saved `order`), startup at `PLAYER_LOGIN`, and
   `/gmb [options] | open | scan | failures | reset`.
 
 Forever is **Vanilla content running on Blizzard's Retail (Mainline) codebase**: assume the
