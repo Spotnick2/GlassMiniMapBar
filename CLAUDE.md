@@ -223,10 +223,12 @@ description, and it must keep its opening line: **"If you want more, use HidingB
 `https://www.curseforge.com/wow/addons/hidingbar`.
 
 1. **Every tag needs a `CHANGELOG.md` entry, committed before the tag is pushed.** A tag without
-   one publishes the previous release's notes. Add `## vX.Y.Z - <date>` at the top, written for
+   one publishes the whole file again (`manual-changelog` uploads all of `CHANGELOG.md`), topped
+   by the previous version's heading, as if those were the new release's notes. Add `## vX.Y.Z - <date>` at the top, written for
    players (what changed for them, not the diff). Anything that behaves differently after
    updating gets its own heading.
-2. Merge through a PR, then tag `main`: `git tag v1.0.0 && git push --tags`.
+2. Merge through a PR, then tag `main`: `git tag v1.0.0 && git push origin v1.0.0`.
+   Push **that tag only**, never `--tags`: every tag that reaches GitHub is a CurseForge release.
 3. The release type comes from the **tag name**: `alpha` / `beta` → that channel, anything else →
    Release. It's a distribution channel, not a stability claim: CurseForge users are on Release
    by default, so a beta tag holds the build back from them. The game client being in beta is

@@ -1,15 +1,15 @@
 # Glass MiniMap Bar
 
+> **If you want more, use [HidingBar](https://www.curseforge.com/wow/addons/hidingbar).**
+> Glass MiniMap Bar is a deliberately small, streamlined take on one HidingBar setup. Multiple
+> bars, profiles, free-floating bars, Masque skins and Blizzard's own minimap buttons in the bar
+> are all HidingBar's, the addon this one is based on.
+
 **Glass MiniMap Bar** gathers your addons' minimap buttons into one liquid-glass bar that grows out
 of a single launcher on the minimap ring. Hover the launcher to open the bar; move away and it
 tucks itself back in.
 
 This is the **World of Warcraft: Forever** edition (client 1.60.1, Interface `16001`).
-
-> **If you want more, use [HidingBar](https://www.curseforge.com/wow/addons/hidingbar).**
-> Glass MiniMap Bar is a deliberately small, streamlined take on one HidingBar setup. Multiple
-> bars, profiles, free-floating bars, Masque skins and Blizzard's own minimap buttons in the bar
-> are all HidingBar's, the addon this one is based on.
 
 ---
 

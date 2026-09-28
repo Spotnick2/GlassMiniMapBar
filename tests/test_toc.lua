@@ -51,7 +51,8 @@ if theirs ~= "" then
     check(body(io.open("Glass.lua"):read("*a")) == body(theirs),
         "Glass.lua matches GlassUnitFrames main:Glass.lua (copy it back)")
     local gen = io.popen('git -C ../GlassUnitFrames show main:Tools/make_textures.py 2>' .. NULL)
-    local g = gen:read("*a"); gen:close()
+    local g = gen and gen:read("*a") or ""
+    if gen then gen:close() end
     check(g:gsub("\r", "") == io.open("Tools/make_textures.py", "rb"):read("*a"):gsub("\r", ""),
         "Tools/make_textures.py matches GlassUnitFrames main (copy it back)")
 else
