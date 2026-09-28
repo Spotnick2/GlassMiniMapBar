@@ -1,0 +1,19 @@
+## Interface: 16001
+## Title: |cff7fd4ffGlass|r MiniMap Bar
+## Notes: Collects the minimap buttons into one liquid-glass bar. /gmb
+## Author: Spotnick
+## Version: @project-version@
+## SavedVariables: GlassMiniMapBarDB
+## IconTexture: Interface\Icons\misc_arrowleft
+
+Libs\LibStub\LibStub.lua
+Libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
+Libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
+Libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
+Compat.lua
+Glass.lua
+Orb.lua
+Collector.lua
+Bar.lua
+Options.lua
+GlassMiniMapBar.lua
