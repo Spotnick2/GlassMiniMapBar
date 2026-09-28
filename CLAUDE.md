@@ -76,8 +76,11 @@ TOC load order: `Libs\*` → `Compat.lua` → `Glass.lua` → `Orb.lua` → `Col
     (overrides removed, parent, points and visibility restored). Alpha/translation
     animations on the button are stopped and their `Play` voided (LibDBIcon's mouseover fade).
     Drag is unregistered.
-  - Clicks are heard with `HookScript` on `OnClick` (or `OnMouseUp` when that's all it has).
-    `Replay(name, mouse)` uses `Button:Click(mouse)` or calls the mouse scripts directly.
+  - Clicks are heard on the **click targets**: the button itself when it has a click script,
+    else its clickable descendants (a named frame whose child Button does the work). Each is
+    hooked (`OnClick`, or `OnMouseUp`), and a click remembers its target. `Replay(name, mouse)`
+    repeats that target (the first after a reload) with `Button:Click(mouse)` or its mouse
+    scripts, and returns false when no handler actually ran.
   - `Scan(report)` builds the skipped-children report (and asks `issecurevariable`) only for
     `/gmb scan`; the scan on every bar open stays cheap.
   - **Nothing is secure**: protected frames are never grabbed, so all of it runs in combat.

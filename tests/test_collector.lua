@@ -141,4 +141,21 @@ eq(broken._shown, true, "shown again")
 check(#broken._points > 0, "points restored")
 check(GlassMiniMapBar.failures["grab:BrokenMinimapButton"], "failure recorded")
 
+-- Codex review (PR #2): a named frame whose CHILD button handles the click.
+local parentFrame = WoW.MinimapButton({ name = "CompositeMinimapFrame", frameType = "Frame", noClick = true, ring = false })
+local child = CreateFrame("Button", nil, parentFrame)
+child.clicks = {}
+child._scripts.OnClick = function(self, mouse) table.insert(self.clicks, mouse) end
+C.Scan()
+check(entry("CompositeMinimapFrame") ~= nil, "composite frame collected")
+local lastHeard
+C.onClick = function(e, mouse) lastHeard = e.name .. "/" .. mouse end
+child:Click("LeftButton")
+eq(lastHeard, "CompositeMinimapFrame/LeftButton", "a click on the child counts for the entry")
+check(C.Replay("CompositeMinimapFrame", "RightButton"), "replay reports success")
+eq(child.clicks[2], "RightButton", "...and the replay clicked the child")
+-- Nothing to run: replay says so instead of claiming success.
+child._scripts.OnClick = nil
+check(not C.Replay("CompositeMinimapFrame", "LeftButton"), "replay with no handler left reports failure")
+
 done("test_collector")

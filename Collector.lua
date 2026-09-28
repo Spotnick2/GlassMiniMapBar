@@ -52,16 +52,28 @@ function Collector.DisplayName(name)
     return n
 end
 
-local function hasClick(frame, depth)
-    for _, s in ipairs({ "OnClick", "OnMouseUp", "OnMouseDown" }) do
-        if W.HasScript(frame, s) and W.GetScript(frame, s) then return true end
+-- The script a frame's click runs through: "OnClick", "OnMouseUp" (also for
+-- a frame with only OnMouseDown: the hook goes on the up edge), or nil.
+local function clickScriptOf(frame)
+    if W.HasScript(frame, "OnClick") and W.GetScript(frame, "OnClick") then return "OnClick" end
+    for _, s in ipairs({ "OnMouseUp", "OnMouseDown" }) do
+        if W.HasScript(frame, s) and W.GetScript(frame, s) then return "OnMouseUp" end
     end
-    if depth < 3 then
-        for _, child in ipairs({ W.GetChildren(frame) }) do
-            if hasClick(child, depth + 1) then return true end
-        end
+    return nil
+end
+
+-- The frames that actually handle the click: the button itself when it has
+-- a click script, else its clickable descendants (3 levels). A named frame
+-- whose child Button does the work is a candidate, and its CHILD is what gets
+-- hooked and replayed.
+local function clickTargets(frame, depth, out)
+    out = out or {}
+    if clickScriptOf(frame) then
+        out[#out + 1] = frame
+    elseif depth < 3 then
+        for _, child in ipairs({ W.GetChildren(frame) }) do clickTargets(child, depth + 1, out) end
     end
-    return false
+    return out
 end
 
 -- Why `frame` (a child of `parent`) is not a candidate, or nil if it is.
@@ -79,7 +91,7 @@ function Collector.Reject(frame, parent)
     local pw, ph = W.GetSize(parent)
     if math.max(w, h) <= 16 or math.abs(w - h) >= 5 then return "not a button shape" end
     if type(pw) == "number" and (w >= pw * 0.5 or h >= ph * 0.5) then return "too large" end
-    if not hasClick(frame, 0) then return "not clickable" end
+    if #clickTargets(frame, 0) == 0 then return "not clickable" end
     return nil
 end
 
@@ -148,12 +160,17 @@ local function removeOverrides(btn)
     for _, m in ipairs(OVERRIDDEN) do btn[m] = nil end
 end
 
+-- Hook every click target; each click remembers which one it was, so the
+-- replay repeats that target (session only: after a reload, the first).
 local function hookClicks(btn, entry)
-    local script = (W.HasScript(btn, "OnClick") and W.GetScript(btn, "OnClick")) and "OnClick" or "OnMouseUp"
-    entry.clickScript = script
-    W.HookScript(btn, script, function(_, mouse)
-        API.Try("click", Collector.onClick, entry, mouse)
-    end)
+    entry.targets = clickTargets(btn, 0)
+    if #entry.targets == 0 then entry.targets = { btn } end   -- forced grab of a scriptless frame
+    for _, target in ipairs(entry.targets) do
+        W.HookScript(target, clickScriptOf(target) or "OnMouseUp", function(_, mouse)
+            entry.lastTarget = target
+            API.Try("click", Collector.onClick, entry, mouse)
+        end)
+    end
 end
 
 local function sortEntries()
@@ -259,15 +276,16 @@ function Collector.Replay(name, mouse)
     local e = Collector.byName[name]
     if not e then return false end
     mouse = mouse or "LeftButton"
-    local btn = e.btn
-    if e.clickScript == "OnClick" and btn.Click then
-        return API.Try("replay:" .. name, function() btn:Click(mouse); return true end) == true
+    local target = e.lastTarget or (e.targets and e.targets[1]) or e.btn
+    if clickScriptOf(target) == "OnClick" and target.Click then
+        return API.Try("replay:" .. name, function() target:Click(mouse); return true end) == true
     end
+    -- Mouse scripts only; true only if one actually ran.
     return API.Try("replay:" .. name, function()
-        local down, up = W.GetScript(btn, "OnMouseDown"), W.GetScript(btn, "OnMouseUp")
-        if down then down(btn, mouse) end
-        if up then up(btn, mouse) end
-        return true
+        local down, up = W.GetScript(target, "OnMouseDown"), W.GetScript(target, "OnMouseUp")
+        if down then down(target, mouse) end
+        if up then up(target, mouse) end
+        return (down or up) ~= nil
     end) == true
 end
 
