@@ -213,9 +213,34 @@ python Tools\make_orb_textures.py                                     # regenera
 - Adversarial review goes through `/codex-consult` (`.claude/skills/codex-consult/`), launched
   by the owner, with Fable as the fallback. Verify its claims before acting, and push back on
   complexity for a single-owner addon.
-- Releases are built by CurseForge's packager from the tag webhook, reading `.pkgmeta`. Every
-  tag needs a `CHANGELOG.md` entry, written for players. Before a public release, decide whether
-  the embedded `Libs\` should become `.pkgmeta` externals.
+- Releases: see **Releasing** below.
+
+## Releasing
+
+CurseForge builds from the repository webhook when it sees a tag (the owner sets it up), reading
+`.pkgmeta`, and publishes `CHANGELOG.md` as the release notes. The README is the project
+description, and it must keep its opening line: **"If you want more, use HidingBar"**, linking
+`https://www.curseforge.com/wow/addons/hidingbar`.
+
+1. **Every tag needs a `CHANGELOG.md` entry, committed before the tag is pushed.** A tag without
+   one publishes the whole file again (`manual-changelog` uploads all of `CHANGELOG.md`), topped
+   by the previous version's heading, as if those were the new release's notes. Add `## vX.Y.Z - <date>` at the top, written for
+   players (what changed for them, not the diff). Anything that behaves differently after
+   updating gets its own heading.
+2. Merge through a PR, then tag `main`: `git tag v1.0.0 && git push origin v1.0.0`.
+   Push **that tag only**, never `--tags`: every tag that reaches GitHub is a CurseForge release.
+3. The release type comes from the **tag name**: `alpha` / `beta` → that channel, anything else →
+   Release. It's a distribution channel, not a stability claim: CurseForge users are on Release
+   by default, so a beta tag holds the build back from them. The game client being in beta is
+   not a reason to tag beta.
+4. **Check the published zip by hand**: `GlassMiniMapBar/` with the TOC's files, `Libs\`, `Media\`
+   and `LICENSE`, nothing else. CI (`.github/workflows/package-check.yml`) proves the BigWigs
+   packager's zip has that shape, but CurseForge's own packager builds the release and doesn't
+   always behave the same (Priestly measured it ignoring an embedded library's `.pkgmeta`).
+
+- `LICENSE` ships in the zip on purpose: GPLv3 requires it. Don't add it to `.pkgmeta`'s ignore.
+- The four libraries are committed under `Libs\`, not `.pkgmeta` externals, so the tests, the
+  deploy script and the release all use the same files.
 
 ## Conventions
 

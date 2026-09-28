@@ -35,7 +35,10 @@ end
 -- Glass.lua is a copy of GlassUnitFrames' material on its MAIN branch: only
 -- the namespace lines and the header may differ. Read through git, not the
 -- working tree, whose branch another session may have switched.
-local upstream = io.popen('git -C ../GlassUnitFrames show main:Glass.lua 2>nul')
+-- The null device by OS: on Linux (CI), "2>nul" would create a file named
+-- nul in the repo, which the packager would then ship.
+local NULL = package.config:sub(1, 1) == "\\" and "nul" or "/dev/null"
+local upstream = io.popen('git -C ../GlassUnitFrames show main:Glass.lua 2>' .. NULL)
 local theirs = upstream and upstream:read("*a") or ""
 if upstream then upstream:close() end
 if theirs ~= "" then
@@ -47,8 +50,9 @@ if theirs ~= "" then
     end
     check(body(io.open("Glass.lua"):read("*a")) == body(theirs),
         "Glass.lua matches GlassUnitFrames main:Glass.lua (copy it back)")
-    local gen = io.popen('git -C ../GlassUnitFrames show main:Tools/make_textures.py 2>nul')
-    local g = gen:read("*a"); gen:close()
+    local gen = io.popen('git -C ../GlassUnitFrames show main:Tools/make_textures.py 2>' .. NULL)
+    local g = gen and gen:read("*a") or ""
+    if gen then gen:close() end
     check(g:gsub("\r", "") == io.open("Tools/make_textures.py", "rb"):read("*a"):gsub("\r", ""),
         "Tools/make_textures.py matches GlassUnitFrames main (copy it back)")
 else
