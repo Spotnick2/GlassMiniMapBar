@@ -34,7 +34,9 @@ TOC load order: `Libs\LibGlass-1.0\LibGlass-1.0.xml` → the vendored `Libs\*` �
 `Options.lua` → `GlassMiniMapBar.lua`.
 
 - **`Libs\`**: LibStub, CallbackHandler-1.0, LibDataBroker-1.1, LibDBIcon-1.0 (MINOR 56), copied
-  from HidingBar and listed file by file in the TOC (no XML, so deploy copies exactly the TOC).
+  from HidingBar, committed, and listed file by file in the TOC (no XML), so deploy copies them
+  straight from the TOC. The TOC's one XML line is `Libs\LibGlass-1.0` (gitignored), which
+  deploy skips and leaves to LibGlass's own deploy (see **The glass material**).
   Other addons embed their own copies; LibStub keeps the newest. The libs are embedded because
   LibDBIcon is both how the launcher lives on the ring and how we hear about new buttons.
 - **`Compat.lua`**: `GlassMiniMapBar.API`: `Print`, `IsSecret`, `Fail` / `Try` (**the one failure
@@ -181,7 +183,9 @@ HidingBar's `-Vanilla.lua` and `-TBC.lua` files.
    scripts are cleared and guarded regardless, so a failure there is harmless.
 6. **The grow animation** (Scale animation origin and `SetScaleFrom` on a frame with masked
    9-sliced regions): look for rim or mask artefacts while it plays.
-7. Textures: `orb_*.tga` are new files, so a **client restart** is needed the first time.
+7. ~~Textures: a client restart for new `orb_*.tga`.~~ **Measured elsewhere (GlassUnitFrames,
+   LibGlass):** new files inside an existing addon folder load after `/reload`. Only a
+   brand-new addon folder needs a client restart.
 8. **The LibGlass migration**: after deploying, the bar and the orbs look as before (the
    library's v3 adds a directional edge, off by default), and no errors.
 

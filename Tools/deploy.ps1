@@ -24,6 +24,9 @@ param(
 $ErrorActionPreference = "Stop"
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 if (-not (Test-Path $AddOnsPath)) { Write-Error "AddOns path not found: $AddOnsPath"; exit 1 }
+# Absolute, so the stale-file sweep below compares like with like (FullName is
+# absolute; a relative path never matched and the sweep deleted fresh copies).
+$AddOnsPath = (Resolve-Path -LiteralPath $AddOnsPath).Path
 
 $LibGlass = if ($env:LIBGLASS) { $env:LIBGLASS } else { Join-Path (Split-Path -Parent $RepoRoot) "LibGlass" }
 if (-not (Test-Path -LiteralPath (Join-Path $LibGlass "Tools\deploy.ps1"))) {

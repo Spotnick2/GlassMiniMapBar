@@ -43,9 +43,13 @@ try {
     $pin = (Get-Content ".pkgmeta") | Where-Object { $_ -match '^\s+(commit|tag):\s*(\S+)\s*$' } |
         ForEach-Object { $Matches[2] } | Select-Object -First 1
     if ($pin -and (Test-Path -LiteralPath $libGlass)) {
-        $want = git -C $libGlass rev-parse --verify --quiet "$pin^{commit}" 2>$null
-        $head = git -C $libGlass rev-parse HEAD 2>$null
-        $dirty = git -C $libGlass status --porcelain 2>$null
+        # A warning only: no git, or a checkout that isn't a repo, must not stop the tests.
+        $want = $null; $head = $null; $dirty = $null
+        try {
+            $want = git -C $libGlass rev-parse --verify --quiet "$pin^{commit}" 2>$null
+            $head = git -C $libGlass rev-parse HEAD 2>$null
+            $dirty = git -C $libGlass status --porcelain 2>$null
+        } catch { }
         if (-not $want -or $want -ne $head -or $dirty) {
             Write-Host "WARNING: LibGlass at $libGlass is not the .pkgmeta pin ($pin)$(if ($dirty) { ', or has uncommitted changes' }); CI tests the pin" -ForegroundColor Yellow
         } else {
