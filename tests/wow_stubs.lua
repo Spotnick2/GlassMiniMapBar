@@ -12,8 +12,10 @@
 -- - The widget METATABLE is a real method table, like the client's, because
 --   the addon calls methods through getmetatable(CreateFrame("Frame")).__index
 --   on buttons whose own SetPoint/Show/... it has replaced.
--- The real libraries (Libs\) are not loaded: LibStub here hands out fakes
--- with the calls the addon makes.
+-- The vendored libraries (Libs\, LibStub included) are not loaded:
+-- WoW.installFakeLibs registers fakes with the calls the addon makes into
+-- the real LibStub, which the embedded LibGlass-1.0 brings (harness.lua
+-- loads it from the checkout, as the client loads the TOC's XML line).
 
 WoW = {}
 local DUMP = os.getenv("GLASSMMB_API_DUMP") or "C:/Projects/References/forever-api-1.60.1.70009.md"
@@ -277,6 +279,8 @@ function print(...)
 end
 
 SlashCmdList = {}
+-- Client string alias (in the dump's _G walk); LibStub's version check uses it.
+strmatch = string.match
 Enum = { UITextureSliceMode = { Stretched = 0, Tiled = 1 } }
 function CreateColor(r, g, b, a) return { r = r, g = g, b = b, a = a } end
 -- WoW.build: the client's build. WoW.version: the TOC's Version, release-shaped
@@ -377,15 +381,16 @@ end
 local LDB = { objects = {} }
 function LDB:NewDataObject(name, obj) self.objects[name] = obj; return obj end
 
-LibStub = setmetatable({}, { __call = function(_, major)
-    if major == "LibDataBroker-1.1" then return LDB end
-    if major == "LibDBIcon-1.0" then
-        WoW.ldbi = WoW.ldbi or newLDBI()
-        return WoW.ldbi
-    end
-    error("LibStub: no stub for " .. tostring(major))
-end })
-function WoW.LDBI() return LibStub("LibDBIcon-1.0") end
+-- Into the session's LibStub, where the vendored copies would register.
+function WoW.installFakeLibs()
+    local ldb = LibStub:NewLibrary("LibDataBroker-1.1", 1)
+    for k, v in pairs(LDB) do ldb[k] = v end
+    ldb.objects = {}
+    local ldbi = LibStub:NewLibrary("LibDBIcon-1.0", 1)
+    for k, v in pairs(newLDBI()) do ldbi[k] = v end
+    WoW.ldbi = ldbi
+end
+function WoW.LDBI() return WoW.ldbi end
 
 --------------------------------------------------------------------------------
 -- Driving
@@ -413,8 +418,9 @@ end
 WoW.reset()
 
 -- Strict globals.
+-- LibStub: the embedded library's own loader reads _G.LibStub before creating it.
 local allowNil = { GlassMiniMapBar = true, GlassMiniMapBarDB = true,
-                   SLASH_GLASSMINIMAPBAR1 = true }
+                   SLASH_GLASSMINIMAPBAR1 = true, LibStub = true }
 setmetatable(_G, { __index = function(_, k)
     if allowNil[k] then return nil end
     error("read of undefined global '" .. tostring(k) .. "' (not stubbed: is it in the API dump?)", 2)

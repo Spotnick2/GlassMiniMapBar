@@ -2,20 +2,37 @@
 
     python Tools/make_orb_textures.py
 
-make_textures.py is a byte-for-byte copy of GlassUnitFrames' generator (the
-material's owner), so this addon's own textures live here instead. It reuses
-that file's primitives (SDF, bands, TGA writer) so the orb is the same
-material as the panels, just round: minimap buttons are circles.
+The panel material and its generator belong to LibGlass-1.0, so only this
+addon's own textures are made here. It reuses the library generator's
+primitives (SDF, bands, TGA writer) from the LibGlass checkout ($LIBGLASS,
+else ../LibGlass) so the orb is the same material as the panels, just round:
+minimap buttons are circles. Output goes to THIS repo's Media/, never the
+library's.
 
 Same conventions as make_textures.py: overlays are one RGB colour with the
 shape in alpha, masks are white-on-black in RGB and alpha, 64x64, no slicing
 (a circle scales uniformly).
 """
 
+import os
+import sys
+
 import numpy as np
 
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+LIBGLASS = os.environ.get("LIBGLASS") or os.path.join(os.path.dirname(ROOT), "LibGlass")
+sys.path.insert(0, os.path.join(LIBGLASS, "Tools"))
+sys.dont_write_bytecode = True   # no __pycache__ in the library checkout (it would read as dirty)
+try:
+    import make_textures
+except ImportError:
+    sys.exit(f"LibGlass checkout not found at {LIBGLASS} (no Tools/make_textures.py): "
+             "clone github.com/Spotnick2/LibGlass there or set LIBGLASS")
 from make_textures import (band, black, coverage, mask, normals, rounded_rect_sdf,
                            white, write_tga)
+
+# write_tga writes to its module's OUT at call time: point it at our Media/.
+make_textures.OUT = os.path.join(ROOT, "Media")
 
 SIZE = 64
 R = SIZE / 2.0 - 0.5          # circle radius: the rounded rect with radius = half size

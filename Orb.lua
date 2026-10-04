@@ -4,16 +4,20 @@
 -- Glass.lua) doesn't fit them. The orb is the same recipe drawn on a circle:
 -- a masked cool tint and a top-down white wash behind the icon, the icon
 -- masked round, then a dark hairline and the lit rim over it. Textures come
--- from Tools/make_orb_textures.py.
+-- from Tools/make_orb_textures.py and are this addon's own, in its Media\
+-- (Glass.MEDIA is LibGlass's folder: the panel textures only).
 --
 -- Skinning someone else's button only ADDS regions and hides two of theirs
 -- (the gold tracking border and the dark disc). Unskin() puts both back, so
 -- the option can be turned off without a reload.
 
+local ADDON = ...
 GlassMiniMapBar = GlassMiniMapBar or {}
 local Orb = {}
 GlassMiniMapBar.Orb = Orb
 local Glass = GlassMiniMapBar.Glass
+
+Orb.MEDIA = "Interface\\AddOns\\" .. ADDON .. "\\Media\\"
 
 local MASK_WRAP = "CLAMPTOBLACKADDITIVE"
 Orb.ICON_FRACTION = 0.70      -- icon diameter as a share of the button
@@ -70,12 +74,12 @@ end
 local function build(btn)
     local s = {}
     local sh = btn:CreateTexture(nil, "BACKGROUND", nil, -8)
-    sh:SetTexture(Glass.MEDIA .. "orb_shadow")
+    sh:SetTexture(Orb.MEDIA .. "orb_shadow")
     sh:SetPoint("CENTER", btn, "CENTER", 0, -1)
     s.shadow = sh
 
     local m = btn:CreateMaskTexture()
-    m:SetTexture(Glass.MEDIA .. "orb_mask", MASK_WRAP, MASK_WRAP)
+    m:SetTexture(Orb.MEDIA .. "orb_mask", MASK_WRAP, MASK_WRAP)
     m:SetAllPoints(btn)
     s.mask = m
 
@@ -94,19 +98,19 @@ local function build(btn)
     s.wash = wash
 
     local dark = btn:CreateTexture(nil, "OVERLAY", nil, 6)
-    dark:SetTexture(Glass.MEDIA .. "orb_dark")
+    dark:SetTexture(Orb.MEDIA .. "orb_dark")
     dark:SetAllPoints(btn)
     s.dark = dark
 
     local rim = btn:CreateTexture(nil, "OVERLAY", nil, 7)
-    rim:SetTexture(Glass.MEDIA .. "orb_rim")
+    rim:SetTexture(Orb.MEDIA .. "orb_rim")
     rim:SetAllPoints(btn)
     rim:SetAlpha(Glass.STYLE.rimAlpha or 1)   -- the same softened rim as the panels
     s.rim = rim
 
     -- The icon's own round mask, sized with the icon in Orb.Skin.
     local im = btn:CreateMaskTexture()
-    im:SetTexture(Glass.MEDIA .. "orb_mask", MASK_WRAP, MASK_WRAP)
+    im:SetTexture(Orb.MEDIA .. "orb_mask", MASK_WRAP, MASK_WRAP)
     s.iconMask = im
     return s
 end

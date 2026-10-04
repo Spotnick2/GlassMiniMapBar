@@ -8,6 +8,7 @@
 ## X-Curse-Project-ID: 1715522
 ## IconTexture: Interface\Icons\misc_arrowleft
 
+Libs\LibGlass-1.0\LibGlass-1.0.xml
 Libs\LibStub\LibStub.lua
 Libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
 Libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
