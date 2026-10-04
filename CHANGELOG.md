@@ -1,5 +1,13 @@
 # Glass MiniMap Bar Changelog
 
+## v1.0.2 - 2026-10-04
+
+### Fixed
+
+- **The chat notice about a new client build really is gone now.** v1.0.1 still printed it
+  once per new game build ("new client build … re-measure"): the download took itself for a
+  developer's copy. That line was for the developer only.
+
 ## v1.0.1 - 2026-10-04
 
 ### Fixed

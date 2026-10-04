@@ -15,6 +15,14 @@ eq(tocLines()[1], LIBGLASS_XML, "LibGlass-1.0 loads first")
 eq(tocFiles(true)[1], "Libs/LibStub/LibStub.lua", "then the vendored LibStub")
 eq(tocFiles()[1], "Compat.lua", "Compat is the first addon file")
 eq(tocFiles()[#tocFiles()], "GlassMiniMapBar.lua", "bootstrap loads last")
+-- The packager replaces its tokens in EVERY file, not just the TOC: a token
+-- written whole in Lua ships as the version (v1.0.1's IsDevelopmentCopy
+-- compared against "v1.0.1"). Assemble it at runtime instead.
+for _, f in ipairs(tocFiles(true)) do
+    local src = io.open(f, "rb"):read("*a")
+    local token = src:match("@project%-[%w-]+@") or src:match("@file%-[%w-]+@")
+    check(not token, f .. " holds no packager token (found " .. tostring(token) .. ")")
+end
 local seen = {}
 for _, f in ipairs(tocFiles(true)) do
     check(not seen[f], "TOC lists each file once: " .. f)
