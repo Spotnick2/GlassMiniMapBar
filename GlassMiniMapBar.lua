@@ -145,7 +145,7 @@ events:SetScript("OnEvent", function(self, event, arg)
         if GlassMiniMapBar.Options then GlassMiniMapBar.Options.Register() end
     elseif event == "PLAYER_LOGIN" then
         API.Try("start", start)
-        if API.ClientBuild() ~= GlassMiniMapBar.MEASURED_ON_BUILD then
+        if API.ClientBuild() ~= GlassMiniMapBar.MEASURED_ON_BUILD and API.IsDevelopmentCopy() then
             API.Print("measured on " .. GlassMiniMapBar.MEASURED_ON_BUILD .. ", this client is "
                 .. API.ClientBuild() .. ": if something misbehaves, /gmb failures.")
         end

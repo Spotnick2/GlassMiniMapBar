@@ -7,7 +7,9 @@ local API = {}
 GlassMiniMapBar.API = API
 
 -- The build the notes this addon relies on were measured on. Bump only after
--- re-measuring in game; tests/test_toc.lua pins the same literal.
+-- re-measuring in game; tests/test_toc.lua pins the same literal. Until then a
+-- development copy says so at login (API.IsDevelopmentCopy); a release keeps
+-- quiet.
 GlassMiniMapBar.MEASURED_ON_BUILD = "1.60.1.70009"
 
 function API.Print(msg)
@@ -21,6 +23,16 @@ end
 function API.ClientBuild()
     local version, build = GetBuildInfo()
     return tostring(version) .. "." .. tostring(build)
+end
+
+-- The build notice is for whoever re-measures, not for players: a release
+-- that still runs on a newer client gains nothing from being told it was
+-- measured on an older one, and what flags an addon out of date is the TOC's
+-- Interface number. So only a development copy speaks: `dev` from
+-- Tools/deploy.ps1, or the raw packager token of an unpackaged checkout.
+function API.IsDevelopmentCopy()
+    local version = C_AddOns.GetAddOnMetadata("GlassMiniMapBar", "Version")
+    return version == "dev" or version == "@project-version@"
 end
 
 -- The one failure recorder: key -> first error, read by /gmb failures.

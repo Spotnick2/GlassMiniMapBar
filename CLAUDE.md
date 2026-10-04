@@ -42,7 +42,10 @@ TOC load order: `Libs\*` → `Compat.lua` → `Glass.lua` → `Orb.lua` → `Col
   throws and refusals), `W` (the real widget methods, see Collector), `IsBlizzardGlobal`
   (`issecurevariable`, *unmeasured*, reported by `/gmb scan` only), the Settings calls, and
   `MouseOverMenu` (UIDropDownMenu lists, LibUIDropDownMenu lists, the Retail `Menu` manager).
-  `MEASURED_ON_BUILD` lives here.
+  `MEASURED_ON_BUILD` lives here. On any other build, a **development copy** (`dev` from deploy,
+  or the raw `@project-version@`) says so at every login; a release never does (players gain
+  nothing from it, and the TOC's Interface is what flags an addon out of date). Bump it only
+  after re-measuring in game: bumping silences the only reminder.
 - **`Glass.lua`**: the material, **copied** from GlassUnitFrames' **`main`** branch
   (`git -C ..\GlassUnitFrames show main:Glass.lua`) with only the namespace lines and header
   changed. `test_toc.lua` fails when the two drift, and the same for `Tools\make_textures.py`.

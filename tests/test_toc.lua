@@ -22,6 +22,18 @@ end
 loadAddon()
 eq(GlassMiniMapBar.MEASURED_ON_BUILD, "1.60.1.70009", "MEASURED_ON_BUILD")
 
+-- The build notice: only a development copy on another build speaks.
+local function notice(build, version)
+    WoW.build, WoW.version = build, version
+    loadAddon()
+    WoW.build, WoW.version = "70009", "v1.0.0"
+    return table.concat(WoW.chat, "\n"):find("measured on", 1, true) ~= nil
+end
+check(notice("70205", "dev"), "a deployed dev copy on a new build says so")
+check(notice("70205", "@project-version@"), "an unpackaged checkout on a new build says so")
+check(not notice("70205", "v1.0.0"), "a release on a new build keeps quiet")
+check(not notice("70009", "dev"), "a dev copy on the measured build keeps quiet")
+
 -- Every texture the material and the orb name exists in Media/.
 for size, S in pairs(GlassMiniMapBar.Glass.SIZES) do
     for _, key in ipairs({ "mask", "rim", "dark", "shadow" }) do

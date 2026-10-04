@@ -279,7 +279,16 @@ end
 SlashCmdList = {}
 Enum = { UITextureSliceMode = { Stretched = 0, Tiled = 1 } }
 function CreateColor(r, g, b, a) return { r = r, g = g, b = b, a = a } end
-function GetBuildInfo() return "1.60.1", "70009", "Sep 23 2026", 16001 end
+-- WoW.build: the client's build. WoW.version: the TOC's Version, release-shaped
+-- by default ("dev" is what Tools/deploy.ps1 writes).
+WoW.build, WoW.version = "70009", "v1.0.0"
+function GetBuildInfo() return "1.60.1", WoW.build, "Sep 23 2026", 16001 end
+C_AddOns = {
+    GetAddOnMetadata = function(name, variable)
+        if name == "GlassMiniMapBar" and variable == "Version" then return WoW.version end
+        return nil
+    end,
+}
 function IsShiftKeyDown() return WoW.shift end
 function issecretvalue(v) return false end
 -- Blizzard's own globals are "secure": WoW.secureNames[name] = true.
