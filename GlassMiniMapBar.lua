@@ -14,6 +14,7 @@
 --   last       { name = , mouse = } the last button clicked in the bar
 --   order      button names in the user's order (Up/Down in the options);
 --              names not collected this session keep their place
+--   seenBuild  the client build a development copy last announced
 
 GlassMiniMapBar = GlassMiniMapBar or {}
 local ADDON = ...
@@ -49,6 +50,7 @@ function GlassMiniMapBar.LoadDB(saved)
     if not Bar.ARROWS[db.direction] and db.direction ~= "auto" then db.direction = "auto" end
     for k in pairs(GlassMiniMapBar.LIMITS) do db[k] = clamp(k, db[k]) end
     if type(db.last) ~= "table" or type(db.last.name) ~= "string" then db.last = nil end
+    if type(db.seenBuild) ~= "string" then db.seenBuild = nil end
     local order = {}
     if type(db.order) == "table" then
         for _, name in ipairs(db.order) do
@@ -145,9 +147,14 @@ events:SetScript("OnEvent", function(self, event, arg)
         if GlassMiniMapBar.Options then GlassMiniMapBar.Options.Register() end
     elseif event == "PLAYER_LOGIN" then
         API.Try("start", start)
-        if API.ClientBuild() ~= GlassMiniMapBar.MEASURED_ON_BUILD and API.IsDevelopmentCopy() then
-            API.Print("measured on " .. GlassMiniMapBar.MEASURED_ON_BUILD .. ", this client is "
-                .. API.ClientBuild() .. ": if something misbehaves, /gmb failures.")
+        -- Once per new client build, in a development copy only: time to
+        -- re-measure, then bump MEASURED_ON_BUILD (which silences it for good).
+        local build = API.ClientBuild()
+        if build ~= GlassMiniMapBar.MEASURED_ON_BUILD and build ~= db.seenBuild
+            and API.IsDevelopmentCopy() then
+            db.seenBuild = build
+            API.Print("new client build " .. build .. " (measured on "
+                .. GlassMiniMapBar.MEASURED_ON_BUILD .. "): re-measure, then bump MEASURED_ON_BUILD.")
         end
     end
 end)
