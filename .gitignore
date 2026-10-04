@@ -8,5 +8,10 @@ luac.out
 .release/
 *.zip
 
-# Python bytecode from Tools/make_orb_textures.py importing make_textures
+# Python bytecode
 __pycache__/
+
+# The embedded LibGlass-1.0: fetched by the packager (.pkgmeta externals),
+# copied from ..\LibGlass by Tools/deploy.ps1. Never commit a copy. The other
+# libraries under Libs/ are vendored and committed.
+Libs/LibGlass-1.0/

@@ -1,5 +1,11 @@
 # Glass MiniMap Bar Changelog
 
+## Unreleased
+
+- Under the hood: the glass look now comes from LibGlass, a small library shared by the Glass
+  addons and included in the download (nothing extra to install). The bar and the buttons look
+  and behave exactly as before; a future fix to the glass reaches every Glass addon you use.
+
 ## v1.0.0 - 2026-09-27
 
 First release, for World of Warcraft: Forever (client 1.60.1).

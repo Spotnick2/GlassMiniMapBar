@@ -6,7 +6,23 @@ manual-changelog:
   filename: CHANGELOG.md
   markup-type: markdown
 
-# YAML list, not markdown bullets.
+# The glass material. Pinned, never `tag: latest` (the packager picks the
+# newest tag by creation date and falls back to the branch HEAD). Bump the pin
+# only in a release made anyway: players get library fixes earlier through
+# whichever glass addon ships the newest copy, since LibStub runs that one.
+# CI reads the pin from here, so it is written once.
+#
+# No comment on a value line: the packager's YAML reader keeps it as part of
+# the value.
+externals:
+  Libs/LibGlass-1.0:
+    url: https://github.com/Spotnick2/LibGlass
+    tag: r1
+
+# YAML list, not markdown bullets. Every pattern matches the WHOLE path from
+# the package root, so the top-level names below never reach inside Libs/.
+# LICENSE is not ignored: GPLv3 requires it in the zip (and the library's own
+# MIT LICENSE ships too).
 ignore:
   - .github
   - .claude
@@ -16,3 +32,12 @@ ignore:
   - CLAUDE.md
   - README.md
   - CHANGELOG.md
+  # The library's own .pkgmeta ignores these; CurseForge's packager, which
+  # builds the release, does not honour it (Priestly #53). CI asserts what
+  # the zip holds under Libs/LibGlass-1.0/.
+  - Libs/LibGlass-1.0/tests
+  - Libs/LibGlass-1.0/docs
+  - Libs/LibGlass-1.0/Tools
+  - Libs/LibGlass-1.0/AGENTS.md
+  - Libs/LibGlass-1.0/CLAUDE.md
+  - Libs/LibGlass-1.0/README.md

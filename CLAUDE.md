@@ -16,7 +16,7 @@ it before you invent a new idiom.
 feature: one bar that pops out from its own minimap button on hover, holding every addon's
 minimap button. So we keep only that:
 - a **launcher**: our own LibDBIcon button on the minimap ring, wearing the glass orb;
-- a **glass bar** (the GlassUnitFrames material) beside it, holding the collected buttons;
+- a **glass bar** (the shared LibGlass-1.0 material) beside it, holding the collected buttons;
 - **Options > AddOns** panel: a dual list box (Hidden | Shown in bar, arrows, Up/Down for
   the order), hover or click, layout, skin;
 - optional **last used**: the launcher wears the last button clicked, and right-click repeats it.
@@ -30,7 +30,7 @@ The rest of the in-game checklist under "Unmeasured" is still open.
 
 ## Layout
 
-TOC load order: `Libs\*` → `Compat.lua` → `Glass.lua` → `Orb.lua` → `Collector.lua` → `Bar.lua` →
+TOC load order: `Libs\LibGlass-1.0\LibGlass-1.0.xml` → the vendored `Libs\*` → `Compat.lua` → `Glass.lua` → `Orb.lua` → `Collector.lua` → `Bar.lua` →
 `Options.lua` → `GlassMiniMapBar.lua`.
 
 - **`Libs\`**: LibStub, CallbackHandler-1.0, LibDataBroker-1.1, LibDBIcon-1.0 (MINOR 56), copied
@@ -46,19 +46,18 @@ TOC load order: `Libs\*` → `Compat.lua` → `Glass.lua` → `Orb.lua` → `Col
   or the raw `@project-version@`) says so once per new build (`db.seenBuild`); a release never
   does (players gain nothing from it, and the TOC's Interface is what flags an addon out of date). Bump it only
   after re-measuring in game: bumping silences the only reminder.
-- **`Glass.lua`**: the material, **copied** from GlassUnitFrames' **`main`** branch
-  (`git -C ..\GlassUnitFrames show main:Glass.lua`) with only the namespace lines and header
-  changed. `test_toc.lua` fails when the two drift, and the same for `Tools\make_textures.py`.
-  Change the material in GlassUnitFrames first (with its `docs/GLASS-MATERIAL.md`), then copy it
-  back. `Media\` holds copies of its textures.
+- **`Glass.lua`**: one line, this addon's instance of the material:
+  `GlassMiniMapBar.Glass = LibStub("LibGlass-1.0"):New()`. See **The glass material** below.
+  `Media\` holds only our own textures (the orb's).
 - **`Orb.lua`**: the glass material on a circle, for round buttons (the launcher, and the
   collected buttons when the skin option is on). It's a masked tint + wash behind the icon, the
   icon enlarged to 70% and masked round, and `orb_dark` + `orb_rim` over it. It only **adds**
   regions and sets the button's gold ring and dark disc to alpha 0; `Unskin` restores both and the
   icon's size, points and mask. It never touches icon texcoords: LibDBIcon's `updateCoord` owns
   them. Skin state lives in a weak table keyed by button, never as fields on their frame.
-  Textures come from **`Tools\make_orb_textures.py`** (ours), which imports the copied
-  generator's primitives.
+  Textures come from **`Tools\make_orb_textures.py`** (ours), which imports the primitives of
+  LibGlass's generator from the checkout and writes into our `Media\`. They're drawn from
+  **`Orb.MEDIA`** (our folder), never `Glass.MEDIA` (the library's).
 - **`Collector.lua`**: finds and takes the buttons (HidingBar's technique, streamlined):
   - A candidate is a **named**, unprotected, non-forbidden child of `Minimap` or
     `MinimapBackdrop`, square within 5 px, larger than 16 px, smaller than half the minimap, with
@@ -123,6 +122,32 @@ TOC load order: `Libs\*` → `Compat.lua` → `Glass.lua` → `Orb.lua` → `Col
   the saved `order`), startup at `PLAYER_LOGIN`, and
   `/gmb [options] | open | scan | failures | reset`.
 
+## The glass material
+
+The material is **LibGlass-1.0**, an embedded LibStub library (`..\LibGlass`,
+github.com/Spotnick2/LibGlass, public, MIT) that every glass addon embeds. Its repo owns the code,
+the 15 panel textures, the generator (`Tools/make_textures.py`) and the write-up
+(`docs/GLASS-MATERIAL.md`), and its `CLAUDE.md` holds the contract (the API, region fields and
+texture names only grow; instances; upgrade rules).
+
+- **Material changes are LibGlass PRs**, never edits here. A bug or a need found here goes on a
+  LibGlass issue. Never edit `..\LibGlass` from this repo's session.
+- **How it's embedded:** `.pkgmeta` externals put it in `Libs\LibGlass-1.0\` (the only supported
+  path: `MEDIA` is derived from it), and the TOC loads its XML first. Only `Libs/LibGlass-1.0/` is
+  gitignored (the other four libs are vendored). A dev copy comes from the LibGlass checkout
+  (`$env:LIBGLASS`, default `..\LibGlass`) through its own `Tools\deploy.ps1`, which
+  `Tools\deploy.ps1` here calls first. The tests load the same checkout and fail loudly without it.
+- **The pin:** `.pkgmeta` pins a tag, **never `tag: latest`**. Bump it only in a release made
+  anyway: players get library fixes earlier through whichever glass addon ships the newest copy
+  (LibStub runs that one). CI reads the pin from `.pkgmeta` (`tests/fetch_libglass.sh`), tests
+  against it, and asserts the zip's `Libs/LibGlass-1.0/` is exactly that commit's shipped files.
+  `tests\run.ps1` and the deploy warn when the local checkout isn't at the pin.
+- **`GlassMiniMapBar.Glass` is an instance**: its `STYLE` (read by `Orb.lua` at build time) and
+  setters are this addon's own. `Glass.MEDIA` resolves to the winning copy's `Media\`: use it
+  only for library textures. Our own art uses `Orb.MEDIA`.
+- **Colours passed to a glass bar's `SetStatusBarColor` must be plain** (the library's hook
+  compares them): never a secret. We build no glass status bars today.
+
 Forever is **Vanilla content running on Blizzard's Retail (Mainline) codebase**: assume the
 Retail API. Advice that cites a TBC or Classic API is usually stale, and that includes
 HidingBar's `-Vanilla.lua` and `-TBC.lua` files.
@@ -157,6 +182,8 @@ HidingBar's `-Vanilla.lua` and `-TBC.lua` files.
 6. **The grow animation** (Scale animation origin and `SetScaleFrom` on a frame with masked
    9-sliced regions): look for rim or mask artefacts while it plays.
 7. Textures: `orb_*.tga` are new files, so a **client restart** is needed the first time.
+8. **The LibGlass migration**: after deploying, the bar and the orbs look as before (the
+   library's v3 adds a directional edge, off by default), and no errors.
 
 ## Toolchain and commands
 
@@ -164,11 +191,14 @@ There's no build system. The Lua 5.1 toolchain is at `C:\Program Files (x86)\Lua
 (`lua.exe`, `luac.exe`). Use it, not a newer Lua that may be first on `PATH`.
 
 ```powershell
-pwsh tests\run.ps1                                                    # luac -p on the TOC's files + every tests\test_*.lua
+pwsh tests\run.ps1                                                    # luac -p on the TOC's .lua files + every tests\test_*.lua
 & 'C:\Program Files (x86)\Lua\5.1\lua.exe' tests\test_collector.lua  # one test, run from the repo root
-pwsh Tools\deploy.ps1                                                 # -> AddOns\GlassMiniMapBar (TOC files, Libs, Media)
-python Tools\make_orb_textures.py                                     # regenerate Media\orb_*.tga
+pwsh Tools\deploy.ps1                                                 # -> AddOns\GlassMiniMapBar (LibGlass, TOC files, Libs, Media)
+python Tools\make_orb_textures.py                                     # regenerate Media\orb_*.tga (needs the LibGlass checkout)
+bash tests/fetch_libglass.sh <new-dir>                                # clone LibGlass at the .pkgmeta pin (then $env:LIBGLASS=<new-dir>)
 ```
+
+All of these find LibGlass at `$env:LIBGLASS`, else `..\LibGlass`.
 
 - Default AddOns path: `C:\Program Files (x86)\World of Warcraft\_classic_beta_\Interface\AddOns`
   (`-AddOnsPath` to override).
@@ -199,8 +229,10 @@ python Tools\make_orb_textures.py                                     # regenera
   the dump and copy its signature.
 - The stub's widget metatable `__index` is a real method **table** (not a function), because the
   addon calls `getmetatable(CreateFrame("Frame")).__index.SetPoint(btn, ...)`.
-- `Libs\` isn't loaded in tests: `LibStub` hands out a fake LibDataBroker and a fake LibDBIcon
-  (`WoW.LDBI()`), whose `Register` makes a button like the real one (border 136430, background
+- `loadAddon` loads the TOC the client's way: the LibGlass XML's scripts from the checkout (the
+  real LibStub included, fresh each session), then the addon files. The vendored `Libs\` aren't
+  loaded: `WoW.installFakeLibs` registers a fake LibDataBroker and a fake LibDBIcon
+  (`WoW.LDBI()`) into that LibStub, whose `Register` makes a button like the real one (border 136430, background
   136467, icon) and fires `LibDBIcon_IconCreated`. `WoW.MinimapButton{...}` makes a hand-made one.
 - Event names are validated against the dump. `test_methods.lua` checks every widget method
   called against the dump's widget-method list, and must keep exercising every handler.
@@ -236,14 +268,17 @@ description, and it must keep its opening line: **"If you want more, use HidingB
    Release. It's a distribution channel, not a stability claim: CurseForge users are on Release
    by default, so a beta tag holds the build back from them. The game client being in beta is
    not a reason to tag beta.
-4. **Check the published zip by hand**: `GlassMiniMapBar/` with the TOC's files, `Libs\`, `Media\`
-   and `LICENSE`, nothing else. CI (`.github/workflows/package-check.yml`) proves the BigWigs
+4. **Check the published zip by hand**: `GlassMiniMapBar/` with the TOC's files, `Libs\` (the
+   four vendored libs, and `Libs\LibGlass-1.0\` with only its XML, `LibGlass.lua`,
+   `LibStub\LibStub.lua`, `LICENSE` and `Media\*.tga`), `Media\` (the four `orb_*`) and
+   `LICENSE`, nothing else. CI (`.github/workflows/package-check.yml`) proves the BigWigs
    packager's zip has that shape, but CurseForge's own packager builds the release and doesn't
    always behave the same (Priestly measured it ignoring an embedded library's `.pkgmeta`).
 
 - `LICENSE` ships in the zip on purpose: GPLv3 requires it. Don't add it to `.pkgmeta`'s ignore.
-- The four libraries are committed under `Libs\`, not `.pkgmeta` externals, so the tests, the
-  deploy script and the release all use the same files.
+- The four HidingBar-era libraries are committed under `Libs\`, not `.pkgmeta` externals, so the
+  tests, the deploy script and the release all use the same files. LibGlass-1.0 is the one
+  external (see **The glass material**).
 
 ## Conventions
 
