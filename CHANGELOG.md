@@ -1,8 +1,16 @@
 # Glass MiniMap Bar Changelog
 
-## Unreleased
+## v1.0.1 - 2026-10-04
 
-- Under the hood: the glass look now comes from LibGlass, a small library shared by the Glass
+### Fixed
+
+- **No more "measured on …" line in chat at every login.** On a newer game client, the addon
+  announced which build it was tested on each time you logged in. Players never needed that; it
+  is gone.
+
+### Under the hood
+
+- The glass look now comes from LibGlass, a small library shared by the Glass
   addons and included in the download (nothing extra to install). The bar and the buttons look
   and behave exactly as before; a future fix to the glass reaches every Glass addon you use.
 
