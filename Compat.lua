@@ -30,9 +30,13 @@ end
 -- measured on an older one, and what flags an addon out of date is the TOC's
 -- Interface number. So only a development copy speaks: `dev` from
 -- Tools/deploy.ps1, or the raw packager token of an unpackaged checkout.
+-- The token is assembled, never written whole: the packager replaces it in
+-- every file, and v1.0.1 shipped `version == "v1.0.1"` here, so each release
+-- took itself for a development copy.
+local VERSION_TOKEN = "@" .. "project-version" .. "@"
 function API.IsDevelopmentCopy()
     local version = C_AddOns.GetAddOnMetadata("GlassMiniMapBar", "Version")
-    return version == "dev" or version == "@project-version@"
+    return version == "dev" or version == VERSION_TOKEN
 end
 
 -- The one failure recorder: key -> first error, read by /gmb failures.
