@@ -186,8 +186,9 @@ HidingBar's `-Vanilla.lua` and `-TBC.lua` files.
 7. ~~Textures: a client restart for new `orb_*.tga`.~~ **Measured elsewhere (GlassUnitFrames,
    LibGlass):** new files inside an existing addon folder load after `/reload`. Only a
    brand-new addon folder needs a client restart.
-8. **The LibGlass migration**: after deploying, the bar and the orbs look as before (the
-   library's v3 adds a directional edge, off by default), and no errors.
+8. ~~The LibGlass migration.~~ **Measured 2026-10-04 (PR #14, deploy + `/reload`):** the bar and
+   the orbs look as before (panel textures from `Libs\LibGlass-1.0\Media`, orbs from our
+   `Media\`), no errors, and the bar and options panel agree on which buttons show.
 
 ## Toolchain and commands
 
