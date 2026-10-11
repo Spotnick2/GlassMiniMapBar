@@ -128,7 +128,7 @@ TOC load order: `Libs\LibGlass-1.0\LibGlass-1.0.xml` â†’ the vendored `Libs\*` â
 
 The material is **LibGlass-1.0**, an embedded LibStub library (`..\LibGlass`,
 github.com/Spotnick2/LibGlass, public, MIT) that every glass addon embeds. Its repo owns the code,
-the 15 panel textures, the generator (`Tools/make_textures.py`) and the write-up
+the panel textures, the generator (`Tools/make_textures.py`) and the write-up
 (`docs/GLASS-MATERIAL.md`), and its `CLAUDE.md` holds the contract (the API, region fields and
 texture names only grow; instances; upgrade rules).
 
@@ -156,10 +156,10 @@ HidingBar's `-Vanilla.lua` and `-TBC.lua` files.
 
 ## References: read these before touching an unfamiliar API
 
-- `C:\Projects\References\PORTING-TBC-TO-FOREVER.md` holds the canonical addon-agnostic field
+- `C:\Projects\WoW\References\PORTING-TBC-TO-FOREVER.md` holds the canonical addon-agnostic field
   notes, measured on the live client. Treat them as fact. Other sessions edit this file, so
   write new addon-agnostic findings there, not into a copy here.
-- `C:\Projects\References\forever-api-1.60.1.70009.md` is the full API dump: functions, events,
+- `C:\Projects\WoW\References\forever-api-1.60.1.70338.md` is the full API dump: functions, events,
   **widget methods** (the only list of those) and the `_G` walk. It proves a name exists, not
   that it works.
 - In game: `/api search <name>`.
