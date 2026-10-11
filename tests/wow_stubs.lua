@@ -285,7 +285,7 @@ Enum = { UITextureSliceMode = { Stretched = 0, Tiled = 1 } }
 function CreateColor(r, g, b, a) return { r = r, g = g, b = b, a = a } end
 -- WoW.build: the client's build. WoW.version: the TOC's Version, release-shaped
 -- by default ("dev" is what Tools/deploy.ps1 writes).
-WoW.build, WoW.version = "70009", "v1.0.0"
+WoW.build, WoW.version = "70338", "v1.0.0"
 function GetBuildInfo() return "1.60.1", WoW.build, "Sep 23 2026", 16001 end
 C_AddOns = {
     GetAddOnMetadata = function(name, variable)
