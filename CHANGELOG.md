@@ -1,6 +1,6 @@
 # Glass MiniMap Bar Changelog
 
-## v1.1.0 - unreleased
+## v1.1.0 - 2026-10-13
 
 ### Added
 
@@ -15,6 +15,7 @@
 ### Changed
 
 - Repeating the last button used never clicks a button that has become protected.
+- Ships the glass material LibGlass r6 (the look is unchanged).
 
 ## v1.0.2 - 2026-10-04
 
