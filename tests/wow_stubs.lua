@@ -151,7 +151,10 @@ function Methods.IsObjectType(w, t)
 end
 function Methods.GetObjectType(w) return w._type end
 function Methods.IsForbidden(w) return false end
-function Methods.IsProtected(w) return w._protected == true end
+function Methods.IsProtected(w)
+    if WoW.secrets[w._protected] then return w._protected end
+    return w._protected == true
+end
 function Methods.EnableMouse(w, v) w._mouse = v end
 function Methods.RegisterForClicks(w, ...) w._clicks = { ... } end
 function Methods.RegisterForDrag(w, ...) w._drag = { ... } end
@@ -327,7 +330,18 @@ function WoW.RegisterTocAddons(list)
     end
     AddonCompartmentFrame:UpdateDisplay()
 end
-function issecretvalue(v) return false end
+-- Secret values (Retail's, live on Forever 70374): WoW.Secret() makes one.
+-- Arithmetic or concatenation on it throws, as the client's does.
+WoW.secrets = setmetatable({}, { __mode = "k" })
+function WoW.Secret()
+    local p = newproxy(true)
+    local mt = getmetatable(p)
+    local function boom() error("attempt to use a secret value", 2) end
+    mt.__add, mt.__sub, mt.__mul, mt.__div, mt.__lt, mt.__le, mt.__concat, mt.__unm = boom, boom, boom, boom, boom, boom, boom, boom
+    WoW.secrets[p] = true
+    return p
+end
+function issecretvalue(v) return WoW.secrets[v] == true end
 -- Blizzard's own globals are "secure": WoW.secureNames[name] = true.
 WoW.secureNames = {}
 function issecurevariable(t, name)

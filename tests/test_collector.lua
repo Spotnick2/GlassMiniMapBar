@@ -159,4 +159,19 @@ eq(child.clicks[2], "RightButton", "...and the replay clicked the child")
 child._scripts.OnClick = nil
 check(not C.Replay("CompositeMinimapFrame", "LeftButton"), "replay with no handler left reports failure")
 
+-- Secret answers (70374): a child whose protection or size is secret is
+-- skipped, never truth-tested or measured, and the others are still collected.
+local veiled = WoW.MinimapButton({ name = "VeiledMinimapButton" })
+veiled._protected = WoW.Secret()
+local sized = WoW.MinimapButton({ name = "SizedMinimapButton" })
+sized._width = WoW.Secret()
+WoW.MinimapButton({ name = "PlainAfterSecretsButton" })
+local _, rej = C.Scan(true)
+local reasons = {}
+for _, r in ipairs(rej) do reasons[r.name] = r.reason end
+eq(reasons.VeiledMinimapButton, "secret", "secret protection: skipped as secret")
+eq(reasons.SizedMinimapButton, "secret", "secret size: skipped as secret")
+check(entry("PlainAfterSecretsButton") ~= nil, "the rest of the minimap is still collected")
+eq(GlassMiniMapBar.failures["scan:VeiledMinimapButton"], nil, "no error from the secret")
+
 done("test_collector")

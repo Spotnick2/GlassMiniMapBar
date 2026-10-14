@@ -134,9 +134,9 @@ local function start()
     Collector.onChange = onChange
     Collector.onClick = onClick
     Bar.Build(db)
-    GlassMiniMapBar.Compartment.SetEnabled(db.compartment)
-    Collector.Scan()
-    onChange()
+    API.Try("compartment", GlassMiniMapBar.Compartment.SetEnabled, db.compartment)
+    API.Try("scan", Collector.Scan)
+    API.Try("layout", onChange)
     -- Addons that make their button late (after a timer, or after their own
     -- PLAYER_LOGIN work). Opening the bar rescans as well.
     for _, delay in ipairs({ 0, 2, 10 }) do C_Timer.After(delay, Collector.Scan) end
