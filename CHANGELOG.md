@@ -1,5 +1,21 @@
 # Glass MiniMap Bar Changelog
 
+## v1.1.0 - unreleased
+
+### Added
+
+- **Blizzard's AddOns list in the bar.** Addons that only show up in Blizzard's "AddOns" button
+  (the compartment by the calendar) now get a button in the bar too, and the AddOns button itself
+  is hidden: everything is in one place. An addon that's in both is shown once. **New and on by
+  default**; turn it off in the options ("Blizzard's AddOns list in the bar") to get the AddOns
+  button back.
+- **A public API for other addons** (docs/PUBLIC-API.md): an addon can open the bar from its own
+  button and tint the glass to match. Glass MiniMap uses it: its bottom-left disc opens this bar.
+
+### Changed
+
+- Repeating the last button used never clicks a button that has become protected.
+
 ## v1.0.2 - 2026-10-04
 
 ### Fixed

@@ -28,7 +28,13 @@ Bar.ARROWS = {
 }
 
 local db                             -- GlassMiniMapBarDB, set by Bar.Build
-local frame, glass, launcher, dataObject
+local frame, glass, dataObject
+-- The launcher: `launcher` is the active anchor the bar opens from; `native`
+-- is our own LibDBIcon button. They differ while another addon has handed us
+-- its own button through the public API (Bar.Attach): that frame is the
+-- host's, its look is the host's, and ours stays hidden meanwhile.
+local launcher, native, external, externalOpts
+local tint                           -- SetGlassTint's { r, g, b, a, wash }, or nil
 local hideTimer = 0
 
 local function ldbi() return LibStub("LibDBIcon-1.0", true) end
@@ -166,8 +172,11 @@ function Bar.IsOpen() return frame ~= nil and frame:IsShown() and not closing en
 
 function Bar.Open()
     if not frame then return end
-    -- Late creators: a scan that finds one lays out through onChange already.
-    if Collector.Scan() == 0 then Bar.Layout() end
+    -- Late creators: a scan or a compartment change that finds one lays out
+    -- through onChange already.
+    local added = Collector.Scan()
+    local changed = API.Try("compartment:sync", GlassMiniMapBar.Compartment.Sync)
+    if added == 0 and not changed then Bar.Layout() end
     Bar.UpdateLauncherIcon()            -- the launcher may have moved sides
     hideTimer = db.hideDelay
     local wasShown, wasClosing = frame:IsShown(), closing
@@ -258,6 +267,9 @@ function Bar.UpdateLauncherIcon()
     if not icon then icon, coords = Bar.ARROWS[Bar.Direction()], nil end
     dataObject.iconCoords = coords
     dataObject.icon = icon
+    if external and externalOpts and type(externalOpts.setIcon) == "function" then
+        API.Try("api:setIcon", externalOpts.setIcon, icon, coords)
+    end
 end
 
 local function showTip(owner)
@@ -305,7 +317,66 @@ function Bar.ApplySkin()
     for _, e in ipairs(Collector.entries) do
         API.Try("skin:" .. e.name, db.skin and Orb.Skin or Orb.Unskin, e.btn)
     end
-    if launcher then Orb.Skin(launcher) end   -- ours always wears the glass
+    if native then Orb.Skin(native) end       -- ours always wears the glass; a host's is the host's
+end
+
+--------------------------------------------------------------------------------
+-- Another addon's launcher (the public API, PublicAPI.lua)
+--------------------------------------------------------------------------------
+
+-- Our own button stays hidden for as long as a host's launcher is attached:
+-- LibDBIcon shows it again from lib:Show, Refresh and its login pass, all
+-- through Show, so a hook on our button's Show hides it again. Nothing is
+-- saved: releasing gives back the player's own choice (db.minimap.hide).
+local hookedNative = false
+local function suppressNative()
+    if not native then return end
+    if not hookedNative then
+        hookedNative = true
+        hooksecurefunc(native, "Show", function(self) if external then self:Hide() end end)
+    end
+    native:Hide()
+end
+
+local function useLauncher(frame_)
+    if Bar.IsOpen() then Bar.Close() end
+    launcher = frame_ or native
+    if frame then
+        Bar.Layout()
+        Bar.UpdateLauncherIcon()
+    end
+end
+
+-- Open the bar from `f` instead of our own button. Before Bar.Build it waits.
+function Bar.Attach(f, opts)
+    external, externalOpts = f, opts
+    if native then suppressNative() end
+    if frame then useLauncher(f) end
+end
+
+function Bar.Detach()
+    if not external then return end
+    external, externalOpts = nil, nil
+    if not frame then return end
+    useLauncher(nil)
+    local lib = ldbi()
+    if native and lib and not (db.minimap and db.minimap.hide) then lib:Show(Bar.NAME) end
+end
+
+function Bar.External() return external end
+
+-- The bar's and the orbs' body tint (the host's theme), or nil for the built look.
+-- t = { r, g, b, a|nil, wash|nil }: a nil alpha keeps each surface's own; wash
+-- multiplies the built wash.
+function Bar.SetGlassTint(t)
+    tint = t
+    Orb.tint = t and { t[1], t[2], t[3], t[4] } or nil
+    Orb.wash = t and t[5] or nil
+    if glass then
+        if t then Glass.SetSurfaceTint(glass, t[1], t[2], t[3], t[4]) else Glass.SetSurfaceTint(glass) end
+        glass.wash:SetAlpha(t and t[5] or 1)
+    end
+    Orb.Repaint()
 end
 
 function Bar.ApplyLock()
@@ -352,7 +423,8 @@ function Bar.Build(database)
             OnLeave = Bar.OnLauncherLeave,
         })
         lib:Register(Bar.NAME, dataObject, db.minimap)
-        launcher = lib:GetMinimapButton(Bar.NAME)
+        native = lib:GetMinimapButton(Bar.NAME)
+        launcher = native
         lib.RegisterCallback(Bar, "LibDBIcon_IconCreated", Collector.OnIconCreated)
         -- Buttons LibDBIcon made before we loaded never fire the callback.
         for _, btn in pairs(lib.objects or {}) do Collector.OnIconCreated(nil, btn) end
@@ -360,11 +432,17 @@ function Bar.Build(database)
         API.Fail("launcher", "LibDataBroker-1.1 / LibDBIcon-1.0 missing")
     end
     Bar.ApplyLock()
+    if tint then Bar.SetGlassTint(tint) end
+    if external then
+        suppressNative()
+        launcher = external
+    end
     return frame
 end
 
 Bar._test = {
     glass = function() return glass end,
     tick = onUpdate,
+    native = function() return native end,
     event = onEvent,
 }

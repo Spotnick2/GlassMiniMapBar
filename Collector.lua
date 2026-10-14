@@ -12,6 +12,10 @@
 --
 -- Nothing here is secure: protected frames are never grabbed, so all of it
 -- may run in combat.
+--
+-- AddOwn/RemoveOwn: the bar's own buttons for the AddOns compartment's entries
+-- (Compartment.lua) are entries too, so hiding, ordering and "last used" treat
+-- every button alike.
 
 GlassMiniMapBar = GlassMiniMapBar or {}
 local Collector = {}
@@ -240,6 +244,36 @@ function Collector.Grab(btn)
     return entry
 end
 
+-- One of OUR buttons (Compartment.lua makes one per AddOns-compartment
+-- entry): an entry like a grabbed one, without the overrides, since nobody
+-- else positions it. `name` is its stable key in the hidden/order lists.
+function Collector.AddOwn(btn, name, display)
+    if Collector.byName[name] or not Collector.host then return nil end
+    local entry = { btn = btn, name = name, display = display, wanted = true, own = true,
+                    width = W.GetWidth(btn), targets = { btn } }
+    W.SetParent(btn, Collector.host)
+    W.ClearAllPoints(btn)
+    W.Hide(btn)
+    entryOf[btn] = entry
+    Collector.byName[name] = entry
+    table.insert(Collector.entries, entry)
+    sortEntries()
+    return entry
+end
+
+-- Take one of our own entries out again (its compartment entry went away).
+function Collector.RemoveOwn(name)
+    local e = Collector.byName[name]
+    if not (e and e.own) then return false end
+    W.Hide(e.btn)
+    Collector.byName[name] = nil
+    entryOf[e.btn] = nil
+    for i, x in ipairs(Collector.entries) do
+        if x == e then table.remove(Collector.entries, i); break end
+    end
+    return true
+end
+
 -- Scan the minimap for candidates. Returns the number newly grabbed and, when
 -- `report` (for /gmb scan), the rejects: { { name = , reason = , secure = }, ... }.
 function Collector.Scan(report)
@@ -303,6 +337,9 @@ function Collector.Replay(name, mouse)
     if not e then return false end
     mouse = mouse or "LeftButton"
     local target = e.lastTarget or (e.targets and e.targets[1]) or e.btn
+    -- Ordinary addon-button replay only: a target that became protected since
+    -- the grab is left alone (an addon's click can't run a protected action).
+    if W.IsForbidden(target) or W.IsProtected(target) then return false end
     if clickScriptOf(target) == "OnClick" and target.Click then
         return API.Try("replay:" .. name, function() target:Click(mouse); return true end) == true
     end

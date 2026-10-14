@@ -160,6 +160,8 @@ function Methods.IsEnabled(w) return w._enabled ~= false end
 function Methods.SetChecked(w, v) w._checked = v and true or false end
 function Methods.SetText(w, t) w._text = t end
 function Methods.GetText(w) return w._text end
+function Methods.SetAtlas(t, atlas) t._atlas = atlas; t._file = nil; return true end
+function Methods.SetHighlightTexture(w, file) w._highlight = file end
 function Methods.GetAnimationGroups(w) return unpack(w._anims or {}) end
 
 -- Animations: Play marks a group playing; WoW.finishAnimations() completes
@@ -270,6 +272,17 @@ function WoW.reset()
     MinimapBackdrop = CreateFrame("Frame", "MinimapBackdrop", Minimap)
     MinimapBackdrop._width, MinimapBackdrop._height = 140, 140
     WoW.ldbi = nil
+    WoW.compartmentCalls = nil
+    -- The AddOns compartment (Blizzard_Minimap\Mainline\AddonCompartment.lua):
+    -- RegisterAddon and the bulk RegisterAddons both end in UpdateDisplay.
+    MinimapCluster = CreateFrame("Frame", "MinimapCluster", UIParent)
+    AddonCompartmentFrame = CreateFrame("Button", "AddonCompartmentFrame", MinimapCluster)
+    AddonCompartmentFrame.registeredAddons = {}
+    function AddonCompartmentFrame:RegisterAddon(data)
+        table.insert(self.registeredAddons, data)
+        self:UpdateDisplay()
+    end
+    function AddonCompartmentFrame:UpdateDisplay() self._displayed = #self.registeredAddons end
 end
 
 function print(...)
@@ -294,6 +307,24 @@ C_AddOns = {
     end,
 }
 function IsShiftKeyDown() return WoW.shift end
+function InCombatLockdown() return false end
+C_Texture = { GetAtlasInfo = function(name)
+    if type(name) == "string" and name:match("^atlas:") then return { width = 16, height = 16 } end
+    return nil
+end }
+
+-- The bulk TOC registration at PLAYER_ENTERING_WORLD: addon titles -> globals.
+function WoW.RegisterTocAddons(list)
+    for _, t in ipairs(list) do
+        local data = { text = t.title, icon = t.icon }
+        data.func = function(_, menuInputData, menu)
+            WoW.compartmentCalls = WoW.compartmentCalls or {}
+            table.insert(WoW.compartmentCalls, { title = t.title, button = menuInputData.buttonName, menu = menu })
+        end
+        table.insert(AddonCompartmentFrame.registeredAddons, data)
+    end
+    AddonCompartmentFrame:UpdateDisplay()
+end
 function issecretvalue(v) return false end
 -- Blizzard's own globals are "secure": WoW.secureNames[name] = true.
 WoW.secureNames = {}
@@ -375,6 +406,36 @@ local function newLDBI()
     function lib:GetMinimapButton(name) return lib.objects[name] end
     function lib:Lock(name) lib.locked[name] = true end
     function lib:Unlock(name) lib.locked[name] = nil end
+    -- LibDBIcon-1.0.lua:391-404: Hide/Show don't touch the saved table.
+    function lib:Hide(name) local b = lib.objects[name]; if b then b:Hide() end end
+    function lib:Show(name) local b = lib.objects[name]; if b then b:Show() end end
+    -- LibDBIcon-1.0.lua:637-665, as shipped: the entry's hover callbacks read menu.text.
+    function lib:AddButtonToCompartment(name)
+        local object = lib.objects[name]
+        if object and not object.compartmentData then
+            object.compartmentData = {
+                text = name, icon = object.dataObject.icon, notCheckable = true, registerForAnyClick = true,
+                func = function(_, menuInputData, menu) object.dataObject.OnClick(menu, menuInputData.buttonName) end,
+                funcOnEnter = function(self, menu) WoW.compartmentEnter = menu.text end,
+                funcOnLeave = function(self, menu) WoW.compartmentLeave = menu.text end,
+            }
+            AddonCompartmentFrame:RegisterAddon(object.compartmentData)
+        end
+    end
+    function lib:RemoveButtonFromCompartment(name)
+        local object = lib.objects[name]
+        if object and object.compartmentData then
+            local list = AddonCompartmentFrame.registeredAddons
+            for i = 1, #list do
+                if list[i] == object.compartmentData then
+                    object.compartmentData = nil
+                    table.remove(list, i)
+                    AddonCompartmentFrame:UpdateDisplay()
+                    return
+                end
+            end
+        end
+    end
     return lib
 end
 

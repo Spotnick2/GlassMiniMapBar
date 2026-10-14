@@ -77,6 +77,7 @@ end
 -- Load the addon the way the client does, in a fresh session: every TOC line
 -- with (name, ns), the library's XML expanded in place and the vendored Libs\
 -- stood in for by the stub's fakes, then ADDON_LOADED and PLAYER_LOGIN.
+-- opts.tocAddons: TOC compartment entries registered after PLAYER_LOGIN.
 -- opts.db: saved variables. opts.before(): runs after the files load and
 -- before ADDON_LOADED (make buttons that exist "before us").
 function loadAddon(opts)
@@ -104,6 +105,9 @@ function loadAddon(opts)
     if opts.before then opts.before() end
     WoW.fire("ADDON_LOADED", "GlassMiniMapBar")
     WoW.fire("PLAYER_LOGIN")
+    -- Blizzard's bulk compartment registration, then PLAYER_ENTERING_WORLD.
+    if opts.tocAddons then WoW.RegisterTocAddons(opts.tocAddons) end
+    WoW.fire("PLAYER_ENTERING_WORLD", true, false)
     WoW.flushTimers(0)
     return GlassMiniMapBar
 end

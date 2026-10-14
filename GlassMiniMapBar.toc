@@ -17,6 +17,8 @@ Compat.lua
 Glass.lua
 Orb.lua
 Collector.lua
+Compartment.lua
 Bar.lua
+PublicAPI.lua
 Options.lua
 GlassMiniMapBar.lua

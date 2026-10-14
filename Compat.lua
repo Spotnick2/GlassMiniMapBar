@@ -20,6 +20,25 @@ function API.IsSecret(v)
     return issecretvalue ~= nil and issecretvalue(v) == true
 end
 
+-- v, or nil when it is secret.
+function API.Plain(v)
+    if API.IsSecret(v) then return nil end
+    return v
+end
+
+-- A texture shows `icon`: an atlas name when the client knows one, else a file.
+function API.SetIcon(tex, icon)
+    if type(icon) == "string" and C_Texture and C_Texture.GetAtlasInfo then
+        local ok, info = pcall(C_Texture.GetAtlasInfo, icon)
+        if ok and info then
+            tex:SetAtlas(icon)
+            return true
+        end
+    end
+    tex:SetTexture(icon)
+    return false
+end
+
 function API.ClientBuild()
     local version, build = GetBuildInfo()
     return tostring(version) .. "." .. tostring(build)
@@ -126,4 +145,103 @@ function API.MouseOverMenu()
         if ok and over then return true end
     end
     return false
+end
+
+--------------------------------------------------------------------------------
+-- API.SystemHider: GlassPanel's, for the one frame that must go entirely
+--------------------------------------------------------------------------------
+
+-- Hide a Blizzard frame that Blizzard manages (and may show again itself)
+-- while one of ours replaces it, and give it back. The references' way
+-- (ElvUI, EllesmereUI): reparent to a hidden frame, never Hide(). Every change
+-- is deferred to a timer (never inside Blizzard's call), and waits for combat
+-- to end if the frame is protected. While Edit Mode is open the frame is
+-- given back, and hidden again once Edit Mode closes. Blizzard reparenting it
+-- is noticed through hooksecurefunc and undone the same deferred way; a layout
+-- change (EDIT_MODE_LAYOUTS_UPDATED) re-checks. Giving it back restores the
+-- parent Blizzard last gave it. Used for AddonCompartmentFrame only, whose
+-- mixin never calls through its own parent (checked in Blizzard_Minimap).
+-- One addon only should manage that frame: while ours wants it hidden, any
+-- other reparenting is undone too.
+--   local h = API.SystemHider("AddonCompartmentFrame")
+--   h.Set(true)   -- hide, when safe;   h.Set(false)   -- give it back
+local systemParent
+function API.SystemHider(globalName)
+    local h = { want = false }
+    local frame, home, hookedParent, scheduled
+    local waiter = CreateFrame("Frame")
+    local sync
+
+    local function editModeOpen()
+        local em = rawget(_G, "EditModeManagerFrame")
+        return type(em) == "table" and em.IsShown ~= nil and API.Plain(em:IsShown()) == true
+    end
+
+    local function later(seconds)
+        if scheduled then return end
+        scheduled = true
+        C_Timer.After(seconds, function() scheduled = false; sync() end)
+    end
+    function h.request() later(0) end
+
+    waiter:SetScript("OnEvent", function(self, event)
+        if event == "PLAYER_REGEN_ENABLED" then self:UnregisterEvent(event) end
+        if h.want or (frame and systemParent and frame:GetParent() == systemParent) then h.request() end
+    end)
+    API.RegisterEvent(waiter, "EDIT_MODE_LAYOUTS_UPDATED")
+
+    local emHooked = false
+    local function watchEditMode()
+        if emHooked then return end
+        local em = rawget(_G, "EditModeManagerFrame")
+        if type(em) == "table" and em.HookScript then
+            emHooked = true
+            em:HookScript("OnShow", function() h.request() end)
+            em:HookScript("OnHide", function() h.request() end)
+        end
+    end
+
+    sync = function()
+        frame = frame or rawget(_G, globalName)
+        if type(frame) ~= "table" or not frame.SetParent then
+            if h.want then API.Fail("hide " .. globalName, "no such frame on this client") end
+            return
+        end
+        watchEditMode()
+        local hide = h.want and not editModeOpen()
+        if API.Plain(InCombatLockdown()) ~= false and API.Plain((frame:IsProtected())) ~= false then
+            API.RegisterEvent(waiter, "PLAYER_REGEN_ENABLED")
+            return
+        end
+        if not systemParent then
+            systemParent = CreateFrame("Frame", nil, UIParent)
+            systemParent:Hide()
+        end
+        local parent = frame:GetParent()
+        if hide then
+            if not hookedParent then
+                hookedParent = true
+                hooksecurefunc(frame, "SetParent", function(_, p)
+                    if h.want and p ~= systemParent then h.request() end
+                end)
+            end
+            if parent ~= systemParent then
+                home = parent   -- where Blizzard last put it
+                frame:SetParent(systemParent)
+            end
+        elseif parent == systemParent and home then
+            frame:SetParent(home)
+        end
+    end
+
+    function h.Set(want)
+        want = want and true or false
+        if want == h.want then return end
+        h.want = want
+        h.request()
+    end
+    function h.IsHidden()
+        return frame ~= nil and systemParent ~= nil and frame:GetParent() == systemParent
+    end
+    return h
 end

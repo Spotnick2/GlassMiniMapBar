@@ -279,6 +279,7 @@ local function build()
         function() return GlassMiniMapBar.db.openOn == "hover" end)
     a:SetScript("OnClick", function(self) GlassMiniMapBar.Set("openOn", self:GetChecked() and "hover" or "click") end)
     a = toggle(panel, a, "lastUsed", "Launcher shows the last button used; right-click it to use it again")
+    a = toggle(panel, a, "compartment", "Blizzard's AddOns list in the bar (hides its AddOns button)")
     a = toggle(panel, a, "skin", "Glass skin on the collected buttons")
     a = toggle(panel, a, "animate", "Animate the bar growing out of the launcher")
     a = toggle(panel, a, "lock", "Lock the launcher in place on the minimap",
