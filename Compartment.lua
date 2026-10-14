@@ -23,7 +23,10 @@
 -- the same addon twice. When its minimap button is in the bar (collected and
 -- shown by its addon), the compartment copy is left out: known identity first
 -- (the button's own compartmentData IS the entry), then the same title (colour
--- and texture codes stripped, case ignored), only when exactly one bar button
+-- and texture codes stripped, case ignored; a minimap button's "_" read as a
+-- space, since LibDBIcon object names stand in for spaces with it:
+-- LibDBIcon10_Leatrix_Maps is the AddOns list's "Leatrix Maps", seen on
+-- 70374), only when exactly one bar button
 -- has it. A compartment entry is kept whenever its minimap button isn't in the bar.
 --
 -- The option `compartment` (on by default): while on, the entries are in the
@@ -88,7 +91,7 @@ local function duplicates(list)
     local count = {}
     for _, e in ipairs(Collector.entries) do
         if not e.own and e.wanted then
-            local k = key(e.display)
+            local k = key((e.display:gsub("_", " ")))
             if k then count[k] = (count[k] or 0) + 1 end
         end
     end

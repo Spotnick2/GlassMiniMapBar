@@ -81,6 +81,11 @@ C.Scan()
 AddonCompartmentFrame:RegisterAddon({ text = "Foo Bar", func = function() end })
 WoW.flushTimers(0)
 check(entry("AddOns:Foo Bar") ~= nil, "'Foo Bar' is not 'Foo-Bar'")
+-- A LibDBIcon object name's "_" is a space: Leatrix registers both (70374).
+WoW.LDBI():Register("Leatrix_Maps", { icon = "bug", OnClick = function() end }, {})
+AddonCompartmentFrame:RegisterAddon({ text = "Leatrix Maps", func = function() end })
+WoW.flushTimers(0)
+eq(entry("AddOns:Leatrix Maps"), nil, "'Leatrix Maps' is LibDBIcon10_Leatrix_Maps: one button")
 -- Ambiguous titles never dedupe.
 WoW.MinimapButton({ name = "TwinMinimapButton" })
 WoW.MinimapButton({ name = "Twin_MinimapButton" })
