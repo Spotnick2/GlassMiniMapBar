@@ -47,6 +47,26 @@ eq(GlassMiniMapBarDB.last.name, "AddOns:Gnomesweeper", "a compartment click coun
 check(C.Replay("AddOns:Late Addon", "LeftButton"), "a compartment button replays like any other")
 eq(opened[2][1], "LeftButton", "...through its func")
 
+-- Last used with an atlas icon: the launcher shows the atlas (Codex, PR #26).
+G.Set("lastUsed", true)
+entry("AddOns:Gnomesweeper").btn:Click("LeftButton")
+eq(G.Bar._test.native().icon._atlas, "atlas:gnome", "the launcher wears the entry's atlas")
+G.Set("lastUsed", false)
+
+-- Removed and registered again before the sync: the same name, so the
+-- player's hidden list still applies (Codex, PR #26).
+G.SetHidden("AddOns:Glass Mail", true)
+local list = AddonCompartmentFrame.registeredAddons
+for i, d in ipairs(list) do
+    if d.text == "|cff7fd4ffGlass|r Mail" then table.remove(list, i); break end
+end
+AddonCompartmentFrame:RegisterAddon({ text = "|cff7fd4ffGlass|r Mail", func = function() end })
+WoW.flushTimers(0)
+check(entry("AddOns:Glass Mail") ~= nil, "re-registered: the same name")
+eq(entry("AddOns:Glass Mail (2)"), nil, "...not a second one")
+eq(GlassMiniMapBarDB.hidden["AddOns:Glass Mail"], true, "...so it stays hidden")
+G.SetHidden("AddOns:Glass Mail", false)
+
 -- LibDBIcon's own entry for a button its addon hides is kept, and its hover
 -- callbacks get the entry (they read menu.text: review round 1's blocker).
 local lib = WoW.LDBI()

@@ -249,7 +249,7 @@ end
 -- The last-used button's icon, or the arrow toward the bar.
 function Bar.UpdateLauncherIcon()
     if not dataObject then return end
-    local icon, coords
+    local icon, coords, atlas
     local last = lastEntry()
     if last then
         local obj = last.btn.dataObject     -- a LibDBIcon button: ask its broker
@@ -257,7 +257,10 @@ function Bar.UpdateLauncherIcon()
             icon, coords = obj.icon, obj.iconCoords
         else
             local info = Orb.IconOf(last.btn)
-            if info and info.file and not info.atlas then
+            if info and info.atlas then
+                -- An atlas (an AddOns-list entry can have one): the name is the icon.
+                icon, atlas = info.atlas, true
+            elseif info and info.file then
                 local c = info.coords
                 icon = info.file
                 if #c >= 8 then coords = { c[1], c[5], c[2], c[4] } end   -- UL, UR, LL -> l, r, t, b
@@ -267,6 +270,8 @@ function Bar.UpdateLauncherIcon()
     if not icon then icon, coords = Bar.ARROWS[Bar.Direction()], nil end
     dataObject.iconCoords = coords
     dataObject.icon = icon
+    -- LibDBIcon draws a broker's icon with SetTexture: an atlas goes on by hand.
+    if atlas and native and native.icon then native.icon:SetAtlas(icon) end
     if external and externalOpts and type(externalOpts.setIcon) == "function" then
         API.Try("api:setIcon", externalOpts.setIcon, icon, coords)
     end

@@ -213,16 +213,19 @@ function Compartment.Sync()
     local dup = duplicates(list)
     local want, changed = {}, false
     for _, data in ipairs(list) do
-        if not dup[data] then
-            want[data] = true
-            if not byData[data] then add(data); changed = true end
-        end
+        if not dup[data] then want[data] = true end
     end
+    -- Stale entries go first: an addon that removed and re-registered its
+    -- entry before this sync gets its old name back ("AddOns:<title>", not
+    -- "<title> (2)"), so the player's hidden/order/last-used still apply.
     local gone = {}
     for data in pairs(byData) do
         if not want[data] then gone[#gone + 1] = data end
     end
     for _, data in ipairs(gone) do remove(data); changed = true end
+    for _, data in ipairs(list) do
+        if want[data] and not byData[data] then add(data); changed = true end
+    end
     if changed then Collector.Changed() end
     return changed
 end

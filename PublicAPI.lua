@@ -27,8 +27,10 @@ end
 -- choice comes back on ReleaseLauncher, or when the other addon is gone).
 -- Safe before or after our PLAYER_LOGIN. `frame` must be shown and sized like
 -- a button; its look is the caller's. opts.setIcon(icon, coords): called with
--- the launcher's face (the last button used, or the arrow toward the bar);
--- coords is nil or { left, right, top, bottom }. Returns true, or false and why.
+-- the launcher's face (the last button used, or the arrow toward the bar):
+-- a file path, a file ID or an atlas name (C_Texture.GetAtlasInfo tells
+-- which); coords is nil or { left, right, top, bottom }. Returns true, or
+-- false and why.
 function GlassMiniMapBar.UseLauncher(frame, opts)
     if not isFrame(frame) then return false, "UseLauncher takes a frame" end
     if opts ~= nil and type(opts) ~= "table" then return false, "opts must be a table" end

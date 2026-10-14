@@ -29,7 +29,8 @@ next session without you. The bar opens toward the middle of the screen from whe
 
 `opts.setIcon(icon, coords)` (optional) is called whenever the launcher's face changes: the last
 button used (when the player turned that option on) or the arrow toward the bar. `icon` is a file
-path or ID; `coords` is nil or `{ left, right, top, bottom }`.
+path, a file ID or an atlas name (an AddOns-list entry may use one: check
+`C_Texture.GetAtlasInfo(icon)` and use `SetAtlas`); `coords` is nil or `{ left, right, top, bottom }`.
 
 Returns `false, why` when `frame` isn't a frame.
 
