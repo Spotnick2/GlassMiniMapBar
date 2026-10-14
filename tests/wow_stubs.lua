@@ -40,7 +40,9 @@ do
         f:close()
     end
     if next(WoW.KNOWN_EVENTS) == nil then
-        for _, e in ipairs({ "ADDON_LOADED", "PLAYER_LOGIN", "PLAYER_ENTERING_WORLD", "GLOBAL_MOUSE_DOWN" }) do
+        -- CI has no dump: the events the addon registers, all in the 70338 dump.
+        for _, e in ipairs({ "ADDON_LOADED", "PLAYER_LOGIN", "PLAYER_ENTERING_WORLD", "GLOBAL_MOUSE_DOWN",
+                             "EDIT_MODE_LAYOUTS_UPDATED", "PLAYER_REGEN_ENABLED" }) do
             WoW.KNOWN_EVENTS[e] = true
         end
     end
