@@ -86,7 +86,6 @@ local function build(btn)
     local st = Glass.STYLE
     local tint = btn:CreateTexture(nil, "BACKGROUND", nil, -6)
     tint:SetAllPoints(btn)
-    tint:SetColorTexture(st.tint[1], st.tint[2], st.tint[3], math.max(st.tint[4], 0.35))
     tint:AddMaskTexture(m)
     s.tint = tint
 
@@ -112,7 +111,20 @@ local function build(btn)
     local im = btn:CreateMaskTexture()
     im:SetTexture(Orb.MEDIA .. "orb_mask", MASK_WRAP, MASK_WRAP)
     s.iconMask = im
+    Orb.Paint(s)
     return s
+end
+
+-- The body's tint and wash: the material's (tint at least 0.35 alpha), or the
+-- host's theme through the public SetGlassTint (Orb.tint = { r, g, b, a|nil },
+-- a nil alpha keeping the orb's own; Orb.wash = a multiplier of the built wash).
+Orb.tint, Orb.wash = nil, nil
+function Orb.Paint(s)
+    local base = Glass.STYLE.tint
+    local c = Orb.tint or base
+    local a = (Orb.tint and Orb.tint[4]) or math.max(base[4], 0.35)
+    s.tint:SetColorTexture(c[1], c[2], c[3], a)
+    s.wash:SetAlpha(Orb.wash or 1)
 end
 
 local skins = setmetatable({}, { __mode = "k" })   -- btn -> skin state, never a field on their frame
@@ -173,6 +185,11 @@ function Orb.Unskin(btn)
         if s.iconSize[1] then icon:SetSize(s.iconSize[1], s.iconSize[2]) end
     end
     s.on = false
+end
+
+-- Repaint every orb built so far (Bar.SetGlassTint).
+function Orb.Repaint()
+    for _, s in pairs(skins) do Orb.Paint(s) end
 end
 
 function Orb.IsSkinned(btn)

@@ -28,6 +28,11 @@ This is the **World of Warcraft: Forever** edition (client 1.60.1, Interface `16
   button across, and Up / Down to set its place in the bar.
 * **Last used, one click away** (optional): the launcher shows the last button you used, and a
   right-click on the launcher uses it again.
+* **Blizzard's AddOns list too** (new in 1.1): addons that only appear under Blizzard's "AddOns"
+  button get a button in the bar, and that button goes away. Turn it off in the options to get it
+  back.
+* **Glass MiniMap** users: the bar opens from the glass disc at the bottom left of the map and
+  takes on the minimap's glass (clear, smoked or class colour).
 * Works in combat: nothing it touches is protected.
 
 ---

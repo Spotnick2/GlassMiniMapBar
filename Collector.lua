@@ -12,6 +12,10 @@
 --
 -- Nothing here is secure: protected frames are never grabbed, so all of it
 -- may run in combat.
+--
+-- AddOwn/RemoveOwn: the bar's own buttons for the AddOns compartment's entries
+-- (Compartment.lua) are entries too, so hiding, ordering and "last used" treat
+-- every button alike.
 
 GlassMiniMapBar = GlassMiniMapBar or {}
 local Collector = {}
@@ -76,6 +80,20 @@ local function clickTargets(frame, depth, out)
     return out
 end
 
+-- Some answers are secret on this client (measured on 70374: a frame's
+-- IsVisible and a text's position). A secret is never truth-tested or used in
+-- arithmetic here: it reads as "not a candidate" (Reject's "secret").
+local function secret(v) return API.IsSecret(v) end
+
+-- Protected or forbidden: true, false, or nil when the client won't say.
+local function locked(frame)
+    local forbidden = W.IsForbidden(frame)
+    local protected = W.IsProtected(frame)
+    if secret(forbidden) or secret(protected) then return nil end
+    return forbidden == true or protected == true
+end
+Collector.Locked = locked
+
 -- Why `frame` (a child of `parent`) is not a candidate, or nil if it is.
 function Collector.Reject(frame, parent)
     if entryOf[frame] then return "grabbed" end
@@ -85,10 +103,13 @@ function Collector.Reject(frame, parent)
     for _, p in ipairs(Collector.IGNORE_PATTERNS) do
         if name:match(p) then return "ignored" end
     end
-    if W.IsForbidden(frame) or W.IsProtected(frame) then return "protected" end
+    local lock = locked(frame)
+    if lock == nil then return "secret" end
+    if lock then return "protected" end
     local w, h = W.GetSize(frame)
-    if type(w) ~= "number" or type(h) ~= "number" then return "no size" end
     local pw, ph = W.GetSize(parent)
+    if secret(w) or secret(h) or secret(pw) or secret(ph) then return "secret" end
+    if type(w) ~= "number" or type(h) ~= "number" then return "no size" end
     if math.max(w, h) <= 16 or math.abs(w - h) >= 5 then return "not a button shape" end
     if type(pw) == "number" and (w >= pw * 0.5 or h >= ph * 0.5) then return "too large" end
     if #clickTargets(frame, 0) == 0 then return "not clickable" end
@@ -196,8 +217,10 @@ function Collector.Grab(btn)
     if entryOf[btn] then return entryOf[btn] end
     local name = W.GetName(btn)
     if not name or not Collector.host then return nil end
-    if W.IsForbidden(btn) or W.IsProtected(btn) then return nil end
-    local entry = { btn = btn, name = name, display = Collector.DisplayName(name), wanted = W.IsShown(btn) }
+    if locked(btn) ~= false then return nil end
+    local shown = W.IsShown(btn)
+    local entry = { btn = btn, name = name, display = Collector.DisplayName(name),
+                    wanted = secret(shown) or shown == true }
     -- What to put back if any step fails, so a half-grabbed button isn't
     -- left hidden inside the bar where no later scan finds it.
     local parent, points = W.GetParent(btn), {}
@@ -240,6 +263,36 @@ function Collector.Grab(btn)
     return entry
 end
 
+-- One of OUR buttons (Compartment.lua makes one per AddOns-compartment
+-- entry): an entry like a grabbed one, without the overrides, since nobody
+-- else positions it. `name` is its stable key in the hidden/order lists.
+function Collector.AddOwn(btn, name, display)
+    if Collector.byName[name] or not Collector.host then return nil end
+    local entry = { btn = btn, name = name, display = display, wanted = true, own = true,
+                    width = W.GetWidth(btn), targets = { btn } }
+    W.SetParent(btn, Collector.host)
+    W.ClearAllPoints(btn)
+    W.Hide(btn)
+    entryOf[btn] = entry
+    Collector.byName[name] = entry
+    table.insert(Collector.entries, entry)
+    sortEntries()
+    return entry
+end
+
+-- Take one of our own entries out again (its compartment entry went away).
+function Collector.RemoveOwn(name)
+    local e = Collector.byName[name]
+    if not (e and e.own) then return false end
+    W.Hide(e.btn)
+    Collector.byName[name] = nil
+    entryOf[e.btn] = nil
+    for i, x in ipairs(Collector.entries) do
+        if x == e then table.remove(Collector.entries, i); break end
+    end
+    return true
+end
+
 -- Scan the minimap for candidates. Returns the number newly grabbed and, when
 -- `report` (for /gmb scan), the rejects: { { name = , reason = , secure = }, ... }.
 function Collector.Scan(report)
@@ -248,9 +301,14 @@ function Collector.Scan(report)
         local parent = rawget(_G, parentName)
         if parent then
             for _, child in ipairs({ W.GetChildren(parent) }) do
-                local why = Collector.Reject(child, parent)
+                -- One odd child must not cost us the rest of the minimap.
+                local ok, why = pcall(Collector.Reject, child, parent)
+                if not ok then
+                    API.Fail("scan:" .. tostring(W.GetName(child) or "?"), why)
+                    why = "error"
+                end
                 if why == nil then
-                    if Collector.Grab(child) then added = added + 1 end
+                    if API.Try("grab", Collector.Grab, child) then added = added + 1 end
                 elseif report and why ~= "grabbed" then
                     local name = W.GetName(child)
                     if name then
@@ -268,8 +326,10 @@ end
 -- lib:Register call, so the relayout is deferred like an owner's Show/Hide.
 function Collector.OnIconCreated(_, btn)
     if not btn then return end
-    local parent = W.GetParent(btn) or rawget(_G, "Minimap")
-    if Collector.Reject(btn, parent) == nil and Collector.Grab(btn) then Collector.Changed() end
+    API.Try("icon:" .. tostring(W.GetName(btn) or "?"), function()
+        local parent = W.GetParent(btn) or rawget(_G, "Minimap")
+        if Collector.Reject(btn, parent) == nil and Collector.Grab(btn) then Collector.Changed() end
+    end)
 end
 
 -- THE rule for "in the bar": wanted by its addon, not hidden by the user.
@@ -303,6 +363,9 @@ function Collector.Replay(name, mouse)
     if not e then return false end
     mouse = mouse or "LeftButton"
     local target = e.lastTarget or (e.targets and e.targets[1]) or e.btn
+    -- Ordinary addon-button replay only: a target that became protected since
+    -- the grab is left alone (an addon's click can't run a protected action).
+    if locked(target) ~= false then return false end
     if clickScriptOf(target) == "OnClick" and target.Click then
         return API.Try("replay:" .. name, function() target:Click(mouse); return true end) == true
     end

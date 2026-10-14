@@ -14,6 +14,7 @@
 --   last       { name = , mouse = } the last button clicked in the bar
 --   order      button names in the user's order (Up/Down in the options);
 --              names not collected this session keep their place
+--   compartment Blizzard's AddOns list in the bar, its button hidden (Compartment.lua)
 --   seenBuild  the client build a development copy last announced
 
 GlassMiniMapBar = GlassMiniMapBar or {}
@@ -24,7 +25,7 @@ local Collector = GlassMiniMapBar.Collector
 
 GlassMiniMapBar.DEFAULTS = {
     openOn = "hover", hideDelay = 0.75, direction = "auto", perRow = 12, buttonSize = 28,
-    skin = true, lastUsed = false, animate = true,
+    skin = true, lastUsed = false, animate = true, compartment = true,
 }
 GlassMiniMapBar.LIMITS = {
     hideDelay = { 0.25, 3, 0.25 }, perRow = { 1, 30, 1 }, buttonSize = { 20, 40, 2 },
@@ -71,7 +72,8 @@ function GlassMiniMapBar.Set(key, value)
     end
     if GlassMiniMapBar.LIMITS[key] then value = clamp(key, value) end
     db[key] = value
-    if key == "skin" then Bar.ApplySkin()
+    if key == "compartment" then GlassMiniMapBar.Compartment.SetEnabled(value == true)
+    elseif key == "skin" then Bar.ApplySkin()
     elseif key == "lastUsed" then Bar.UpdateLauncherIcon()
     elseif key == "animate" then return
     else Bar.Layout(); Bar.UpdateLauncherIcon() end
@@ -116,6 +118,7 @@ function GlassMiniMapBar.OpenOptions()
 end
 
 local function onChange()
+    GlassMiniMapBar.Compartment.Request()   -- a minimap button arriving or going may (un)duplicate an entry
     Bar.ApplySkin()
     Bar.Layout()
     Bar.UpdateLauncherIcon()
@@ -131,8 +134,9 @@ local function start()
     Collector.onChange = onChange
     Collector.onClick = onClick
     Bar.Build(db)
-    Collector.Scan()
-    onChange()
+    API.Try("compartment", GlassMiniMapBar.Compartment.SetEnabled, db.compartment)
+    API.Try("scan", Collector.Scan)
+    API.Try("layout", onChange)
     -- Addons that make their button late (after a timer, or after their own
     -- PLAYER_LOGIN work). Opening the bar rescans as well.
     for _, delay in ipairs({ 0, 2, 10 }) do C_Timer.After(delay, Collector.Scan) end

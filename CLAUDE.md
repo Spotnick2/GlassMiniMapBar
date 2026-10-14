@@ -19,10 +19,16 @@ minimap button. So we keep only that:
 - a **glass bar** (the shared LibGlass-1.0 material) beside it, holding the collected buttons;
 - **Options > AddOns** panel: a dual list box (Hidden | Shown in bar, arrows, Up/Down for
   the order), hover or click, layout, skin;
-- optional **last used**: the launcher wears the last button clicked, and right-click repeats it.
+- optional **last used**: the launcher wears the last button clicked, and right-click repeats it;
+- **Blizzard's AddOns compartment in the bar** (v1.1.0, option on by default): its entries become
+  bar buttons and the AddOns button is hidden (`Compartment.lua`);
+- a **public API** (v1.1.0, `PublicAPI.lua`, contract in `docs/PUBLIC-API.md`): another addon's
+  button as the launcher, and the glass tint. Glass MiniMap (`..\GlassMiniMap`) uses it; GlassMaps
+  will. Bump `PUBLIC_API_VERSION` on any incompatible change.
 
 Not ported, on purpose: multiple bars, profiles, free-floating bars, Masque, LibDataBroker
-launchers as bar buttons, grabbing Blizzard's default minimap buttons, manual grab lists, the
+launchers as bar buttons, grabbing Blizzard's default minimap buttons (the AddOns compartment's
+*entries* are the one exception, as our own buttons), manual grab lists, the
 drag-to-reorder UI, locales. Order is the user's (Up/Down in the options), then alphabetical.
 
 **Status: first version, running in game** (collection, skin and layout confirmed on 70009).
@@ -30,8 +36,8 @@ The rest of the in-game checklist under "Unmeasured" is still open.
 
 ## Layout
 
-TOC load order: `Libs\LibGlass-1.0\LibGlass-1.0.xml` → the vendored `Libs\*` → `Compat.lua` → `Glass.lua` → `Orb.lua` → `Collector.lua` → `Bar.lua` →
-`Options.lua` → `GlassMiniMapBar.lua`.
+TOC load order: `Libs\LibGlass-1.0\LibGlass-1.0.xml` → the vendored `Libs\*` → `Compat.lua` → `Glass.lua` → `Orb.lua` → `Collector.lua` →
+`Compartment.lua` → `Bar.lua` → `PublicAPI.lua` → `Options.lua` → `GlassMiniMapBar.lua`.
 
 - **`Libs\`**: LibStub, CallbackHandler-1.0, LibDataBroker-1.1, LibDBIcon-1.0 (MINOR 56), copied
   from HidingBar, committed, and listed file by file in the TOC (no XML), so deploy copies them
