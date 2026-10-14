@@ -11,6 +11,11 @@ tucks itself back in.
 
 This is the **World of Warcraft: Forever** edition (client 1.60.1, Interface `16001`).
 
+> **New: [Glass MiniMap](https://www.curseforge.com/wow/addons/glassminimap)**, the whole minimap in
+> the same liquid glass. Install both and this bar opens from the glass disc at the bottom left of
+> the map, in the minimap's own glass (clear, smoked or class colour). Glass MiniMap Bar keeps
+> working on its own with any minimap.
+
 ---
 
 ## Features
@@ -31,8 +36,9 @@ This is the **World of Warcraft: Forever** edition (client 1.60.1, Interface `16
 * **Blizzard's AddOns list too** (new in 1.1): addons that only appear under Blizzard's "AddOns"
   button get a button in the bar, and that button goes away. Turn it off in the options to get it
   back.
-* **Glass MiniMap** users: the bar opens from the glass disc at the bottom left of the map and
-  takes on the minimap's glass (clear, smoked or class colour).
+* **[Glass MiniMap](https://www.curseforge.com/wow/addons/glassminimap)** users: the bar opens from
+  the glass disc at the bottom left of the map and takes on the minimap's glass (clear, smoked or
+  class colour).
 * Works in combat: nothing it touches is protected.
 
 ---
