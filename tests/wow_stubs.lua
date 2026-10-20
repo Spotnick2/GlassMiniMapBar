@@ -18,7 +18,7 @@
 -- loads it from the checkout, as the client loads the TOC's XML line).
 
 WoW = {}
-local DUMP = os.getenv("GLASSMMB_API_DUMP") or "C:/Projects/WoW/References/forever-api-1.60.1.70338.md"
+local DUMP = os.getenv("GLASSMMB_API_DUMP") or "C:/Projects/WoW/References/Forever/api/forever-api-1.60.1.70338.md"
 
 --------------------------------------------------------------------------------
 -- Known events (from the dump when present)
