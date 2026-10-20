@@ -109,9 +109,13 @@ eq(entry("AddOns:Leatrix Maps"), nil, "'Leatrix Maps' is LibDBIcon10_Leatrix_Map
 -- A LibDBIcon button is also its data object's text and label: Portal
 -- Roulette's object is "PortalRoulette", its entry "Portal Roulette"; 123's
 -- object is "OneTwoThree", its entry "123".
-WoW.LDBI():Register("PortalRoulette", { text = "Portal Roulette", OnClick = function() end }, {})
+-- Broker objects are LibDataBroker proxies (Codex, PR #33).
+local LDB = LibStub("LibDataBroker-1.1")
+WoW.LDBI():Register("PortalRoulette", LDB:NewDataObject("PortalRoulette",
+    { type = "launcher", text = "Portal Roulette", OnClick = function() end }), {})
 AddonCompartmentFrame:RegisterAddon({ text = "Portal Roulette", func = function() end })
-WoW.LDBI():Register("OneTwoThree", { type = "data source", label = "123", text = "3 shards", OnClick = function() end }, {})
+WoW.LDBI():Register("OneTwoThree", LDB:NewDataObject("OneTwoThree",
+    { type = "data source", label = "123", text = "3 shards", OnClick = function() end }), {})
 AddonCompartmentFrame:RegisterAddon({ text = "123", func = function() end })
 WoW.flushTimers(0)
 eq(entry("AddOns:Portal Roulette"), nil, "'Portal Roulette' is LibDBIcon10_PortalRoulette's text: one button")

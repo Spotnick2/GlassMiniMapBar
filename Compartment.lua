@@ -98,7 +98,9 @@ local function duplicates(list)
             local titles = { (e.display:gsub("_", " ")) }
             local obj = rawget(e.btn, "dataObject")
             if type(obj) == "table" then
-                titles[2], titles[3] = rawget(obj, "label"), rawget(obj, "text")
+                -- Indexed, not rawget: a broker object is a proxy whose
+                -- fields live in LibDataBroker's attributestorage.
+                titles[2], titles[3] = obj.label, obj.text
             end
             local seen = {}
             for i = 1, 3 do
