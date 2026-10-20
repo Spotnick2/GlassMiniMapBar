@@ -83,7 +83,6 @@ local function build(btn)
     m:SetAllPoints(btn)
     s.mask = m
 
-    local st = Glass.STYLE
     local tint = btn:CreateTexture(nil, "BACKGROUND", nil, -6)
     tint:SetAllPoints(btn)
     tint:AddMaskTexture(m)
@@ -92,7 +91,6 @@ local function build(btn)
     local wash = btn:CreateTexture(nil, "BACKGROUND", nil, -5)
     wash:SetAllPoints(btn)
     wash:SetColorTexture(1, 1, 1, 1)
-    wash:SetGradient("VERTICAL", CreateColor(1, 1, 1, 0), CreateColor(1, 1, 1, st.wash))
     wash:AddMaskTexture(m)
     s.wash = wash
 
@@ -117,14 +115,16 @@ end
 
 -- The body's tint and wash: the material's (tint at least 0.35 alpha), or the
 -- host's theme through the public SetGlassTint (Orb.tint = { r, g, b, a|nil },
--- a nil alpha keeping the orb's own; Orb.wash = a multiplier of the built wash).
+-- a nil alpha keeping the orb's own; Orb.wash = a multiplier of the built wash,
+-- painted into the gradient: SetAlpha doesn't reach a gradient texture).
 Orb.tint, Orb.wash = nil, nil
 function Orb.Paint(s)
     local base = Glass.STYLE.tint
     local c = Orb.tint or base
     local a = (Orb.tint and Orb.tint[4]) or math.max(base[4], 0.35)
     s.tint:SetColorTexture(c[1], c[2], c[3], a)
-    s.wash:SetAlpha(Orb.wash or 1)
+    local peak = math.min(1, Glass.STYLE.wash * (Orb.wash or 1))
+    s.wash:SetGradient("VERTICAL", CreateColor(1, 1, 1, 0), CreateColor(1, 1, 1, peak))
 end
 
 local skins = setmetatable({}, { __mode = "k" })   -- btn -> skin state, never a field on their frame
