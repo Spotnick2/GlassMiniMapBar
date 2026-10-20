@@ -26,7 +26,9 @@
 -- and texture codes stripped, case ignored; a minimap button's "_" read as a
 -- space, since LibDBIcon object names stand in for spaces with it:
 -- LibDBIcon10_Leatrix_Maps is the AddOns list's "Leatrix Maps", seen on
--- 70374), only when exactly one bar button
+-- 70374; and a LibDBIcon button's data object label and text: Portal
+-- Roulette's button is LibDBIcon10_PortalRoulette, its entry "Portal
+-- Roulette"), only when exactly one bar button
 -- has it. A compartment entry is kept whenever its minimap button isn't in the bar.
 --
 -- The option `compartment` (on by default): while on, the entries are in the
@@ -87,12 +89,27 @@ local function duplicates(list)
             if e and e.wanted and not e.own then dup[data] = true end
         end
     end
-    -- The same title, unambiguous only: one shown minimap button with it.
+    -- The same title, unambiguous only: one shown minimap button with it. A
+    -- LibDBIcon button's titles are its name and its data object's label and
+    -- text: LibDBIcon10_PortalRoulette is "Portal Roulette" (text).
     local count = {}
     for _, e in ipairs(Collector.entries) do
         if not e.own and e.wanted then
-            local k = key((e.display:gsub("_", " ")))
-            if k then count[k] = (count[k] or 0) + 1 end
+            local titles = { (e.display:gsub("_", " ")) }
+            local obj = rawget(e.btn, "dataObject")
+            if type(obj) == "table" then
+                -- Indexed, not rawget: a broker object is a proxy whose
+                -- fields live in LibDataBroker's attributestorage.
+                titles[2], titles[3] = obj.label, obj.text
+            end
+            local seen = {}
+            for i = 1, 3 do
+                local k = key(titles[i])
+                if k and not seen[k] then
+                    seen[k] = true
+                    count[k] = (count[k] or 0) + 1
+                end
+            end
         end
     end
     for _, data in ipairs(list) do

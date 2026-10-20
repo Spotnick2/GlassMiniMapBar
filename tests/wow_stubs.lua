@@ -455,8 +455,18 @@ local function newLDBI()
     return lib
 end
 
+-- Like LibDataBroker-1.1.lua:14-46: the fields move into a side storage and
+-- the object is an empty proxy, so rawget on it finds nothing.
 local LDB = { objects = {} }
-function LDB:NewDataObject(name, obj) self.objects[name] = obj; return obj end
+function LDB:NewDataObject(name, obj)
+    local store = {}
+    for k, v in pairs(obj or {}) do store[k] = v end
+    obj = setmetatable({}, { __metatable = "access denied",
+        __index = function(_, k) return store[k] end,
+        __newindex = function(_, k, v) store[k] = v end })
+    self.objects[name] = obj
+    return obj
+end
 
 -- Into the session's LibStub, where the vendored copies would register.
 function WoW.installFakeLibs()
