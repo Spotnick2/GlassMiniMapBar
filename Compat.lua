@@ -10,7 +10,7 @@ GlassMiniMapBar.API = API
 -- re-measuring in game; tests/test_toc.lua pins the same literal. Until then a
 -- development copy says so at login (API.IsDevelopmentCopy); a release keeps
 -- quiet.
-GlassMiniMapBar.MEASURED_ON_BUILD = "1.60.1.70338"
+GlassMiniMapBar.MEASURED_ON_BUILD = "1.60.1.70450"
 
 function API.Print(msg)
     print("|cff7fd4ffGlassMiniMapBar|r " .. msg)

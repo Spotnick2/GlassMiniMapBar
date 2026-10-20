@@ -18,7 +18,7 @@
 -- loads it from the checkout, as the client loads the TOC's XML line).
 
 WoW = {}
-local DUMP = os.getenv("GLASSMMB_API_DUMP") or "C:/Projects/WoW/References/Forever/api/forever-api-1.60.1.70338.md"
+local DUMP = os.getenv("GLASSMMB_API_DUMP") or "C:/Projects/WoW/References/Forever/api/forever-api-1.60.1.70450.md"
 
 --------------------------------------------------------------------------------
 -- Known events (from the dump when present)
@@ -40,7 +40,7 @@ do
         f:close()
     end
     if next(WoW.KNOWN_EVENTS) == nil then
-        -- CI has no dump: the events the addon registers, all in the 70338 dump.
+        -- CI has no dump: the events the addon registers, all in the 70450 dump.
         for _, e in ipairs({ "ADDON_LOADED", "PLAYER_LOGIN", "PLAYER_ENTERING_WORLD", "GLOBAL_MOUSE_DOWN",
                              "EDIT_MODE_LAYOUTS_UPDATED", "PLAYER_REGEN_ENABLED" }) do
             WoW.KNOWN_EVENTS[e] = true
@@ -303,7 +303,7 @@ Enum = { UITextureSliceMode = { Stretched = 0, Tiled = 1 } }
 function CreateColor(r, g, b, a) return { r = r, g = g, b = b, a = a } end
 -- WoW.build: the client's build. WoW.version: the TOC's Version, release-shaped
 -- by default ("dev" is what Tools/deploy.ps1 writes).
-WoW.build, WoW.version = "70338", "v1.0.0"
+WoW.build, WoW.version = "70450", "v1.0.0"
 function GetBuildInfo() return "1.60.1", WoW.build, "Sep 23 2026", 16001 end
 C_AddOns = {
     GetAddOnMetadata = function(name, variable)
