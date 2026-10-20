@@ -12,7 +12,7 @@ it before you invent a new idiom.
 
 **Goal:** a streamlined, liquid-glass replacement for the owner's **HidingBar** setup
 (by sfmict, **GPLv3**, so this addon is GPLv3 too and may adapt its code; reference copy at
-`C:\Projects\WoW\References\Addons\Plugins\HidingBar`). The owner used one HidingBar
+`C:\Projects\WoW\References\Addons\MapMinimap\HidingBar`). The owner used one HidingBar
 feature: one bar that pops out from its own minimap button on hover, holding every addon's
 minimap button. So we keep only that:
 - a **launcher**: our own LibDBIcon button on the minimap ring, wearing the glass orb;
@@ -169,7 +169,7 @@ HidingBar's `-Vanilla.lua` and `-TBC.lua` files.
   **widget methods** (the only list of those) and the `_G` walk. It proves a name exists, not
   that it works.
 - In game: `/api search <name>`.
-- `C:\Projects\WoW\References\Addons\Plugins\HidingBar` (`HidingBar\`, `HidingBar_Options\`) is
+- `C:\Projects\WoW\References\Addons\MapMinimap\HidingBar` (`HidingBar\`, `HidingBar_Options\`) is
   the reference copy of HidingBar, this addon's model: check how it handles something before
   reinventing it. Update it only through the `wow-references` skill.
 
