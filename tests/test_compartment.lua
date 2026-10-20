@@ -106,6 +106,16 @@ WoW.LDBI():Register("Leatrix_Maps", { icon = "bug", OnClick = function() end }, 
 AddonCompartmentFrame:RegisterAddon({ text = "Leatrix Maps", func = function() end })
 WoW.flushTimers(0)
 eq(entry("AddOns:Leatrix Maps"), nil, "'Leatrix Maps' is LibDBIcon10_Leatrix_Maps: one button")
+-- A LibDBIcon button is also its data object's text and label: Portal
+-- Roulette's object is "PortalRoulette", its entry "Portal Roulette"; 123's
+-- object is "OneTwoThree", its entry "123".
+WoW.LDBI():Register("PortalRoulette", { text = "Portal Roulette", OnClick = function() end }, {})
+AddonCompartmentFrame:RegisterAddon({ text = "Portal Roulette", func = function() end })
+WoW.LDBI():Register("OneTwoThree", { type = "data source", label = "123", text = "3 shards", OnClick = function() end }, {})
+AddonCompartmentFrame:RegisterAddon({ text = "123", func = function() end })
+WoW.flushTimers(0)
+eq(entry("AddOns:Portal Roulette"), nil, "'Portal Roulette' is LibDBIcon10_PortalRoulette's text: one button")
+eq(entry("AddOns:123"), nil, "'123' is LibDBIcon10_OneTwoThree's label: one button")
 -- Ambiguous titles never dedupe.
 WoW.MinimapButton({ name = "TwinMinimapButton" })
 WoW.MinimapButton({ name = "Twin_MinimapButton" })
