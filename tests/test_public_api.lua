@@ -95,10 +95,15 @@ loadAddon({ before = function()
     GlassMiniMapBar.SetGlassTint(0.05, 0.06, 0.08, 0.62, 0.5)
 end })
 local glass = GlassMiniMapBar.Bar._test.glass()
+local WASH = GlassMiniMapBar.Glass.STYLE.wash
+-- The wash is a gradient: SetAlpha doesn't reach it (the stub ignores it, as
+-- the client does), so it's the gradient's peak that changes.
+local function peak(tex) return tex._gradient and tex._gradient[3].a end
 eq(glass.tint._color[4], 0.62, "remembered before build: the bar's body")
-eq(glass.wash._alpha, 0.5, "...its wash")
+eq(peak(glass.wash), WASH * 0.5, "...its wash, through the gradient")
 local orb = GlassMiniMapBar.Orb._test.skins[entry("LibDBIcon10_DBM").btn]
 eq(orb.tint._color[4], 0.62, "...and the orbs")
+eq(peak(orb.wash), WASH * 0.5, "...the orbs' wash too")
 WoW.LDBI():Register("Late", { icon = "late" }, {})
 WoW.flushTimers(0)
 eq(GlassMiniMapBar.Orb._test.skins[entry("LibDBIcon10_Late").btn].tint._color[1], 0.05, "an orb made later is tinted too")
@@ -107,7 +112,11 @@ eq(glass.tint._color[4], glass.tint.glassColor[4], "...keeps the surface's own a
 check(not GlassMiniMapBar.SetGlassTint(2, 0, 0), "out of range: refused")
 GlassMiniMapBar.SetGlassTint()
 eq(glass.tint._color[1], glass.tint.glassColor[1], "no arguments: as built")
-eq(glass.wash._alpha, 1, "...wash too")
+eq(peak(glass.wash), WASH, "...wash too")
+eq(peak(orb.wash), WASH, "...and the orbs' wash")
+check(GlassMiniMapBar.SetGlassTint(0.1, 0.1, 0.1, 0.5, 2), "a doubled wash")
+eq(peak(glass.wash), math.min(1, WASH * 2), "...is the built wash doubled, at most 1")
+GlassMiniMapBar.SetGlassTint()
 
 eq(next(GlassMiniMapBar.failures), nil, "no failures")
 done("test_public_api")

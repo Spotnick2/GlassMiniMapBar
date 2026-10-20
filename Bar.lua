@@ -372,14 +372,14 @@ function Bar.External() return external end
 
 -- The bar's and the orbs' body tint (the host's theme), or nil for the built look.
 -- t = { r, g, b, a|nil, wash|nil }: a nil alpha keeps each surface's own; wash
--- multiplies the built wash.
+-- multiplies the built wash, through SetWash (SetAlpha doesn't reach a gradient).
 function Bar.SetGlassTint(t)
     tint = t
     Orb.tint = t and { t[1], t[2], t[3], t[4] } or nil
     Orb.wash = t and t[5] or nil
     if glass then
         if t then Glass.SetSurfaceTint(glass, t[1], t[2], t[3], t[4]) else Glass.SetSurfaceTint(glass) end
-        glass.wash:SetAlpha(t and t[5] or 1)
+        Glass.SetWash(glass, math.min(1, Glass.STYLE.wash * (t and t[5] or 1)))
     end
     Orb.Repaint()
 end

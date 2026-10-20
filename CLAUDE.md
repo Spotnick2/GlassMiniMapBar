@@ -153,6 +153,10 @@ texture names only grow; instances; upgrade rules).
 - **`GlassMiniMapBar.Glass` is an instance**: its `STYLE` (read by `Orb.lua` at build time) and
   setters are this addon's own. `Glass.MEDIA` resolves to the winning copy's `Media\`: use it
   only for library textures. Our own art uses `Orb.MEDIA`.
+- **A wash is a gradient, and `SetAlpha` doesn't reach a gradient texture** on this client
+  (LibGlass #47). Change a LibGlass surface's wash with `Glass.SetWash(g, peak)` (r7), and an
+  orb's by repainting its gradient (`Orb.Paint`). `SetGlassTint`'s wash is a multiplier of
+  `STYLE.wash`, as Glass UI's `Body.wash` will be.
 - **Colours passed to a glass bar's `SetStatusBarColor` must be plain** (the library's hook
   compares them): never a secret. We build no glass status bars today.
 
