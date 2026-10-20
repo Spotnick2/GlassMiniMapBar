@@ -30,14 +30,14 @@ for _, f in ipairs(tocFiles(true)) do
 end
 
 loadAddon()
-eq(GlassMiniMapBar.MEASURED_ON_BUILD, "1.60.1.70338", "MEASURED_ON_BUILD")
+eq(GlassMiniMapBar.MEASURED_ON_BUILD, "1.60.1.70450", "MEASURED_ON_BUILD")
 
 -- The build notice: a development copy on another build speaks once per
 -- build; a release never does.
 local function notice(build, version, saved)
     WoW.build, WoW.version = build, version
     loadAddon({ db = saved })
-    WoW.build, WoW.version = "70338", "v1.0.0"
+    WoW.build, WoW.version = "70450", "v1.0.0"
     return table.concat(WoW.chat, "\n"):find("new client build", 1, true) ~= nil
 end
 local saved = {}
@@ -49,7 +49,7 @@ check(notice("70205", "@project-version@", {}), "an unpackaged checkout on a new
 local release = {}
 check(not notice("70205", "v1.0.0", release), "a release on a new build keeps quiet")
 eq(release.seenBuild, nil, "and records nothing, so a later dev copy still hears it")
-check(not notice("70338", "dev", {}), "a dev copy on the measured build keeps quiet")
+check(not notice("70450", "dev", {}), "a dev copy on the measured build keeps quiet")
 
 -- Every texture the material names ships with the library (Libs\LibGlass-1.0\Media
 -- in the package; the checkout's Media/ here). Ours (the orb) are in Media/.

@@ -165,7 +165,7 @@ HidingBar's `-Vanilla.lua` and `-TBC.lua` files.
 - `C:\Projects\WoW\References\Docs\PORTING-TBC-TO-FOREVER.md` holds the canonical addon-agnostic field
   notes, measured on the live client. Treat them as fact. Other sessions edit this file, so
   write new addon-agnostic findings there, not into a copy here.
-- `C:\Projects\WoW\References\Forever\api\forever-api-1.60.1.70338.md` is the full API dump: functions, events,
+- `C:\Projects\WoW\References\Forever\api\forever-api-1.60.1.70450.md` is the full API dump: functions, events,
   **widget methods** (the only list of those) and the `_G` walk. It proves a name exists, not
   that it works.
 - In game: `/api search <name>`.
