@@ -1,5 +1,18 @@
 # Glass MiniMap Bar Changelog
 
+## v1.1.1 - 2026-10-20
+
+### Fixed
+
+- **An addon no longer shows up twice in the bar** when its minimap button and its entry in
+  Blizzard's AddOns list go by different names (Portal Roulette, 123).
+- **The glass now follows Glass MiniMap's theme fully.** The bar and its round buttons took the
+  theme's colour but kept the default sheen; they now take its sheen too.
+
+### Changed
+
+- Ships the glass material LibGlass r11 (the look is unchanged).
+
 ## v1.1.0 - 2026-10-13
 
 ### Added
