@@ -26,7 +26,8 @@ This is the **World of Warcraft: Forever** edition (client 1.60.1, Interface `16
   BugSack, AtlasLoot, Leatrix, RXPGuides, …) moves into the bar, including the ones made with
   LibDBIcon and hand-made ones.
 * **Liquid glass.** The bar is a translucent, softly lit glass panel, and each button gets a
-  matching round glass skin (you can turn the skin off).
+  matching round glass skin (you can turn the skin off). Three glasses to choose from (new in
+  1.2): Pearl, the default, Clean, and Classic, the look before 1.2.
 * **Opens toward the middle of the screen**, from wherever you drag the launcher on the ring, and
   wraps into rows or columns if you like.
 * **Hover or click to open.** It closes on its own when the mouse leaves, but stays open while
@@ -63,6 +64,7 @@ The options live in **Options → AddOns → Glass MiniMap Bar**.
 /gmb           open the options
 /gmb open      open the bar
 /gmb scan      list the buttons collected, and the ones skipped and why
+/gmb material  show or set the glass: /gmb material pearl, clean or classic
 /gmb reset     put the launcher back at its default spot (after /reload)
 /gmb failures  show any errors the addon recorded
 ```

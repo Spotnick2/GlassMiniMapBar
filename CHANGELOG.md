@@ -1,5 +1,23 @@
 # Glass MiniMap Bar Changelog
 
+## v1.2.0 - 2026-10-21
+
+### Changed
+
+- **A new default look: Pearl.** The bar and its round buttons wear Pearl glass, with a softer
+  sheen and a light frost. **To keep the look you had**, pick Classic: the new "Glass" setting in
+  the options, or `/gmb material classic`.
+
+### Added
+
+- **Choose the glass:** Pearl, Clean or Classic, in the options or with `/gmb material`.
+- **Ready for Glass UI**, the upcoming home of the Glass addons. When Glass UI's "Use Glass UI
+  appearance" is on, the bar takes its Pearl glass and its colour (clear, smoked or your class
+  colour), and follows a change of colour straight away, together with Glass MiniMap. Your own
+  choice of glass is kept and comes back when you turn that off (after a /reload). `/gmb suite`
+  shows which look is in use. Without Glass UI, nothing changes.
+- **Now also on Wago and GitHub Releases**, besides CurseForge.
+
 ## v1.1.1 - 2026-10-20
 
 ### Fixed
