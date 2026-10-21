@@ -31,6 +31,7 @@ ignore:
   - Tools
   - CLAUDE.md
   - README.md
+  - README.curseforge.md
   - CHANGELOG.md
   # The library's own .pkgmeta ignores these; CurseForge's packager, which
   # builds the release, does not honour it (Priestly #53). CI asserts what
