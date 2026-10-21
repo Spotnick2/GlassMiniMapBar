@@ -9,6 +9,8 @@
 of a single launcher on the minimap ring. Hover the launcher to open the bar; move away and it
 tucks itself back in.
 
+![The bar open beside the minimap, every addon button in round glass](https://raw.githubusercontent.com/Spotnick2/GlassMiniMapBar/main/docs/screenshots/bar.png)
+
 This is the **World of Warcraft: Forever** edition (client 1.60.1, Interface `16001`).
 
 > **New: [Glass MiniMap](https://www.curseforge.com/wow/addons/glassminimap)**, the whole minimap in
@@ -69,13 +71,15 @@ The options live in **Options → AddOns → Glass MiniMap Bar**.
 
 ## Installation
 
-### CurseForge (recommended)
+### CurseForge or Wago
 
-Install through the CurseForge app and enable it in game.
+Install through the [CurseForge](https://www.curseforge.com/wow/addons/glass-minimap-bar) or
+[Wago](https://addons.wago.io/addons/vNAW5gKo) app and enable it in game.
 
 ### Manual
 
-Download the release zip and extract it so the folder lands at:
+Download the zip from [GitHub Releases](https://github.com/Spotnick2/GlassMiniMapBar/releases)
+and extract it so the folder lands at:
 
 ```
 World of Warcraft/_classic_beta_/Interface/AddOns/GlassMiniMapBar/
@@ -90,7 +94,8 @@ both collect the same minimap buttons and would fight over them.
 
 ## Feedback
 
-Open an issue on GitHub or leave a comment on CurseForge. `/gmb scan` and `/gmb failures` output
+Open an issue on [GitHub](https://github.com/Spotnick2/GlassMiniMapBar/issues) or leave a
+comment on CurseForge. `/gmb scan` and `/gmb failures` output
 is the most useful thing to paste into a report.
 
 ## Credits
@@ -105,4 +110,5 @@ is the most useful thing to paste into a report.
 
 ## License
 
-GPLv3, as HidingBar is. See [LICENSE](LICENSE).
+GPLv3, as HidingBar is. See [LICENSE](https://github.com/Spotnick2/GlassMiniMapBar/blob/main/LICENSE),
+which also lists the embedded libraries and their own licences.

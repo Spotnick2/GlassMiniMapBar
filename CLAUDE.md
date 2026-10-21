@@ -270,10 +270,21 @@ All of these find LibGlass at `$env:LIBGLASS`, else `..\LibGlass`.
 
 ## Releasing
 
-CurseForge builds from the repository webhook when it sees a tag (the owner sets it up), reading
-`.pkgmeta`, and publishes `CHANGELOG.md` as the release notes. The README is the project
-description, and it must keep its opening line: **"If you want more, use HidingBar"**, linking
-`https://www.curseforge.com/wow/addons/hidingbar`.
+The shared guide is `C:\Projects\WoW\References\Docs\RELEASING.md`. A tag publishes three times:
+- **CurseForge** (project 1715522, `glass-minimap-bar`) builds from the repository webhook,
+  reading `.pkgmeta`, and publishes `CHANGELOG.md` as the release notes.
+- **GitHub Releases** and **Wago** (project `vNAW5gKo`, the TOC's `X-Wago-ID`) get CI's own zip:
+  the `release` and `wago` jobs of `package-check.yml` (the guide's templates), on a tag, after
+  `check`. Their notes are the tag's `CHANGELOG.md` section (`tests/release_files.sh`, copied
+  unchanged from the template). Wago needs the `WAGO_API_TOKEN` repo secret (set). A failed
+  target is published again from Actions > Run workflow, from `main`, with the tag.
+
+The README is the GitHub page, with absolute links and images, and it must keep its opening line:
+**"If you want more, use HidingBar"**, linking `https://www.curseforge.com/wow/addons/hidingbar`.
+`README.curseforge.md` is the CurseForge and Wago description, **untracked** (`.git/info/exclude`,
+and `.pkgmeta` ignores it): the owner pastes it, and its images use CurseForge's own
+`media.forgecdn.net` URLs. Screenshots live in `docs/screenshots/`, cropped so no character,
+realm or guild name shows.
 
 1. **Every tag needs a `CHANGELOG.md` entry, committed before the tag is pushed.** A tag without
    one publishes the whole file again (`manual-changelog` uploads all of `CHANGELOG.md`), topped
@@ -287,11 +298,13 @@ description, and it must keep its opening line: **"If you want more, use HidingB
    by default, so a beta tag holds the build back from them. The game client being in beta is
    not a reason to tag beta.
 4. **Check the published zip by hand**: `GlassMiniMapBar/` with the TOC's files, `Libs\` (the
-   four vendored libs, and `Libs\LibGlass-1.0\` with only its XML, `LibGlass.lua`,
+   four vendored libs, three of them with their `LICENSE.txt`, and `Libs\LibGlass-1.0\` with only its XML, `LibGlass.lua`,
    `LibStub\LibStub.lua`, `LICENSE` and `Media\*.tga`), `Media\` (the four `orb_*`) and
    `LICENSE`, nothing else. CI (`.github/workflows/package-check.yml`) proves the BigWigs
    packager's zip has that shape, but CurseForge's own packager builds the release and doesn't
    always behave the same (Priestly measured it ignoring an embedded library's `.pkgmeta`).
+   Also check the tag's Actions run (`check`, `release`, `wago` green), the GitHub release (the
+   zip and `release.json`), and Wago's Releases tab (game version `1.60.1`).
 
 - `LICENSE` ships in the zip on purpose: GPLv3 requires it. Don't add it to `.pkgmeta`'s ignore.
 - The four HidingBar-era libraries are committed under `Libs\`, not `.pkgmeta` externals, so the
