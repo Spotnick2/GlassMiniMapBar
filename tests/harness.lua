@@ -80,10 +80,17 @@ end
 -- opts.tocAddons: TOC compartment entries registered after PLAYER_LOGIN.
 -- opts.db: saved variables. opts.before(): runs after the files load and
 -- before ADDON_LOADED (make buttons that exist "before us").
+-- opts.suite: a fake Glass UI (WoW.FakeGlassUI's options, or true), loaded
+-- before us as OptionalDeps makes it, and returned second; opts.glassUI: a
+-- GlassUI of your own. opts.loaded(): runs between ADDON_LOADED and
+-- PLAYER_LOGIN (another addon's login code may run before ours).
 function loadAddon(opts)
     opts = opts or {}
-    GlassMiniMapBar, GlassMiniMapBarDB, LibStub = nil, nil, nil
+    GlassMiniMapBar, GlassMiniMapBarDB, LibStub, GlassUI = nil, nil, nil, nil
     WoW.reset()
+    local fakeUI
+    if opts.suite then fakeUI = WoW.FakeGlassUI(opts.suite ~= true and opts.suite or nil) end
+    if opts.glassUI ~= nil then GlassUI = opts.glassUI end
     local ns, faked = {}, false
     for _, line in ipairs(tocLines()) do
         local files = {}
@@ -104,12 +111,13 @@ function loadAddon(opts)
     if opts.db then GlassMiniMapBarDB = opts.db end
     if opts.before then opts.before() end
     WoW.fire("ADDON_LOADED", "GlassMiniMapBar")
+    if opts.loaded then opts.loaded() end
     WoW.fire("PLAYER_LOGIN")
     -- Blizzard's bulk compartment registration, then PLAYER_ENTERING_WORLD.
     if opts.tocAddons then WoW.RegisterTocAddons(opts.tocAddons) end
     WoW.fire("PLAYER_ENTERING_WORLD", true, false)
     WoW.flushTimers(0)
-    return GlassMiniMapBar
+    return GlassMiniMapBar, fakeUI
 end
 
 function launcher() return GlassMiniMapBar.Bar.Launcher() end

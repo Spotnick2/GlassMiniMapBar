@@ -67,7 +67,11 @@ WoW.flushTimers()
 for _, k in ipairs({ "skin", "lastUsed" }) do GlassMiniMapBar.Set(k, false); GlassMiniMapBar.Set(k, true) end
 for _, d in ipairs({ "left", "right", "up", "down", "auto" }) do GlassMiniMapBar.Set("direction", d) end
 GlassMiniMapBar.Set("lock", true)
-for _, cmd in ipairs({ "scan", "failures", "open", "reset", "help", "" }) do GlassMiniMapBar._test.slash(cmd) end
+for _, cmd in ipairs({ "scan", "failures", "open", "reset", "material", "material clean", "material junk", "suite", "help", "" }) do
+    GlassMiniMapBar._test.slash(cmd)
+end
+local mat = GlassMiniMapBar.Options._test.material()
+mat.button._scripts.OnClick(mat.button, "LeftButton")
 -- The compartment and the public API.
 WoW.RegisterTocAddons({ { title = "Gnomesweeper", icon = "atlas:gnome" } })
 WoW.flushTimers(0)
@@ -82,6 +86,18 @@ GlassMiniMapBar.LauncherClick(host, "LeftButton")
 GlassMiniMapBar.SetGlassTint(0.1, 0.1, 0.1, 0.5, 0.5); GlassMiniMapBar.SetGlassTint()
 GlassMiniMapBar.ReleaseLauncher()
 WoW.flushTimers()
+eq(next(GlassMiniMapBar.failures), nil, "no failures recorded while exercising everything")
+
+-- Following Glass UI: the suite's tints live, the options' Glass UI button.
+local _, ui = loadAddon({ suite = { tint = "class" }, before = function()
+    WoW.LDBI():Register("DBM", { icon = "dbm" }, {})
+end })
+GlassMiniMapBar.Options._test.panel():Show()
+mat = GlassMiniMapBar.Options._test.material()
+mat.open._scripts.OnClick(mat.open, "LeftButton")
+for _, t in ipairs({ "smoked", "clear", "class" }) do ui.SetTint(t) end
+WoW.fire("PLAYER_ENTERING_WORLD", false, true)
+GlassMiniMapBar._test.slash("suite")
 
 local n = 0
 for name in pairs(WoW.methodsCalled) do

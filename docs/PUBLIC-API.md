@@ -55,7 +55,15 @@ Back to our own minimap button (shown again unless the player hid it).
 The body tint of the bar and its round buttons, so they follow your theme. `r, g, b` in 0..1;
 `a` nil keeps each surface's own alpha; `wash` multiplies the built top-down wash (1 = as built,
 0..2). No arguments: the look as built. Remembered before the bar exists and applied to buttons
-that arrive later. `false` for values out of range.
+that arrive later. `false` for values out of range. While `FollowsSuite()` is true the colours
+are kept but not painted: Glass UI's look is on the bar.
+
+### `GlassMiniMapBar.FollowsSuite() -> bool`
+True while we follow Glass UI's suite look: its tint and wash are on the bar and the round
+buttons. A host that themes us through `SetGlassTint` stops calling it while this is true, so the
+bar has one driver (Glass MiniMap reads it with `rawget` and calls it under `pcall` before each
+`SetGlassTint`). Decided once per session, at our `ADDON_LOADED`, so it is settled before any
+`PLAYER_LOGIN`; it changes only after a `/reload`. Added within version 1.
 
 ### `GlassMiniMapBar.OpenOptions()`
 Opens our page in Options > AddOns.

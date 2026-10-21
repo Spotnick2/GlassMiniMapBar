@@ -110,6 +110,14 @@ eq(GlassMiniMapBar.Orb._test.skins[entry("LibDBIcon10_Late").btn].tint._color[1]
 check(GlassMiniMapBar.SetGlassTint(0.3, 0.6, 0.9), "a tint without alpha")
 eq(glass.tint._color[4], glass.tint.glassColor[4], "...keeps the surface's own alpha")
 check(not GlassMiniMapBar.SetGlassTint(2, 0, 0), "out of range: refused")
+-- A host's explicit alpha is its own on the orbs too, below their 0.35 floor and at 0.
+for _, a in ipairs({ 0.1, 0 }) do
+    check(GlassMiniMapBar.SetGlassTint(0.1, 0.2, 0.3, a), "a host alpha of " .. a)
+    eq(glass.tint._color[4], a, "...on the bar")
+    eq(orb.tint._color[4], a, "...and on the orbs, unclamped")
+end
+check(GlassMiniMapBar.SetGlassTint(0.1, 0.2, 0.3), "no host alpha")
+eq(orb.tint._color[4], math.max(GlassMiniMapBar.Glass.STYLE.tint[4], 0.35), "...the orb's own, at least 0.35")
 GlassMiniMapBar.SetGlassTint()
 eq(glass.tint._color[1], glass.tint.glassColor[1], "no arguments: as built")
 eq(peak(glass.wash), WASH, "...wash too")

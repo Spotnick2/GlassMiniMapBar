@@ -15,7 +15,7 @@ local ADDON = ...
 GlassMiniMapBar = GlassMiniMapBar or {}
 local Orb = {}
 GlassMiniMapBar.Orb = Orb
-local Glass = GlassMiniMapBar.Glass
+-- GlassMiniMapBar.Glass is built at ADDON_LOADED (Suite.Start): read it at call time.
 
 Orb.MEDIA = "Interface\\AddOns\\" .. ADDON .. "\\Media\\"
 
@@ -102,7 +102,7 @@ local function build(btn)
     local rim = btn:CreateTexture(nil, "OVERLAY", nil, 7)
     rim:SetTexture(Orb.MEDIA .. "orb_rim")
     rim:SetAllPoints(btn)
-    rim:SetAlpha(Glass.STYLE.rimAlpha or 1)   -- the same softened rim as the panels
+    rim:SetAlpha(GlassMiniMapBar.Glass.STYLE.rimAlpha or 1)   -- the same softened rim as the panels
     s.rim = rim
 
     -- The icon's own round mask, sized with the icon in Orb.Skin.
@@ -113,15 +113,22 @@ local function build(btn)
     return s
 end
 
--- The body's tint and wash: the material's (tint at least 0.35 alpha), or the
--- host's theme through the public SetGlassTint (Orb.tint = { r, g, b, a|nil },
--- a nil alpha keeping the orb's own; Orb.wash = a multiplier of the built wash,
--- painted into the gradient: SetAlpha doesn't reach a gradient texture).
-Orb.tint, Orb.wash = nil, nil
+-- The body's tint and wash, set by Bar.Paint: the material's, Glass UI's or
+-- the host's (Orb.tint = { r, g, b, a|nil }, a nil alpha keeping the orb's
+-- own; Orb.wash = a multiplier of the built wash, painted into the gradient:
+-- SetAlpha doesn't reach a gradient texture; Orb.suite: the tint is Glass
+-- UI's). The built look and Glass UI's tint get at least 0.35 alpha: a small
+-- orb over the minimap needs more body than a panel (Glass UI's clear body is
+-- the panel's 0.24). A host's explicit alpha (SetGlassTint) is its own, 0 included.
+Orb.tint, Orb.wash, Orb.suite = nil, nil, false
+Orb.MIN_ALPHA = 0.35
 function Orb.Paint(s)
+    local Glass = GlassMiniMapBar.Glass
     local base = Glass.STYLE.tint
     local c = Orb.tint or base
-    local a = (Orb.tint and Orb.tint[4]) or math.max(base[4], 0.35)
+    local a = Orb.tint and Orb.tint[4]
+    -- A local rendering floor, not an override of Glass UI's look (no `own` key).
+    if a == nil or Orb.suite then a = math.max(a or base[4], Orb.MIN_ALPHA) end
     s.tint:SetColorTexture(c[1], c[2], c[3], a)
     local peak = math.min(1, Glass.STYLE.wash * (Orb.wash or 1))
     s.wash:SetGradient("VERTICAL", CreateColor(1, 1, 1, 0), CreateColor(1, 1, 1, peak))
