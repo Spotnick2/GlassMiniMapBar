@@ -372,8 +372,8 @@ end
 
 function Bar.External() return external end
 
--- The body tint in effect: { r, g, b, a|nil } (nil = as built) and the wash
--- as a multiplier of the built one. Glass UI's while we apply the suite look
+-- The body tint in effect: { r, g, b, a|nil } (nil = as built), the wash as a
+-- multiplier of the built one, and whether it is Glass UI's. Glass UI's while we apply the suite look
 -- (its class body: our class colour shaded, at the built alpha; while the
 -- colour can't be read, as built until PLAYER_ENTERING_WORLD paints again),
 -- else the host's (SetGlassTint).
@@ -385,17 +385,17 @@ local function bodyInEffect()
             local r, g, bl = API.ClassColor()
             if r then t = { r * b.classShade, g * b.classShade, bl * b.classShade } end
         end
-        return t, b.wash or 1
+        return t, b.wash or 1, true
     end
-    if tint then return { tint[1], tint[2], tint[3], tint[4] }, tint[5] or 1 end
-    return nil, 1
+    if tint then return { tint[1], tint[2], tint[3], tint[4] }, tint[5] or 1, false end
+    return nil, 1, false
 end
 
 -- Paint the bar's and the orbs' body: the tint through SetSurfaceTint, the
 -- wash through SetWash (SetAlpha doesn't reach a gradient).
 function Bar.Paint()
-    local t, wash = bodyInEffect()
-    Orb.tint, Orb.wash = t, wash
+    local t, wash, suite = bodyInEffect()
+    Orb.tint, Orb.wash, Orb.suite = t, wash, suite
     local Glass = GlassMiniMapBar.Glass
     if glass then
         if t then Glass.SetSurfaceTint(glass, t[1], t[2], t[3], t[4]) else Glass.SetSurfaceTint(glass) end
