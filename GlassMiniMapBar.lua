@@ -15,6 +15,9 @@
 --   order      button names in the user's order (Up/Down in the options);
 --              names not collected this session keep their place
 --   compartment Blizzard's AddOns list in the bar, its button hidden (Compartment.lua)
+--   material   "clean" | "classic": the glass, applied at /reload; absent = Pearl,
+--              the default (saved only when it differs). Kept but unused while
+--              following Glass UI (Suite.lua)
 --   seenBuild  the client build a development copy last announced
 
 GlassMiniMapBar = GlassMiniMapBar or {}
@@ -52,6 +55,9 @@ function GlassMiniMapBar.LoadDB(saved)
     for k in pairs(GlassMiniMapBar.LIMITS) do db[k] = clamp(k, db[k]) end
     if type(db.last) ~= "table" or type(db.last.name) ~= "string" then db.last = nil end
     if type(db.seenBuild) ~= "string" then db.seenBuild = nil end
+    if not GlassMiniMapBar.IsMaterial(db.material) or db.material == GlassMiniMapBar.DEFAULT_MATERIAL then
+        db.material = nil
+    end
     local order = {}
     if type(db.order) == "table" then
         for _, name in ipairs(db.order) do
@@ -61,6 +67,23 @@ function GlassMiniMapBar.LoadDB(saved)
     db.order = order
     GlassMiniMapBar.db = db
     return db
+end
+
+GlassMiniMapBar.DEFAULT_MATERIAL = "pearl"
+
+-- Our own material (the one built when not following Glass UI).
+function GlassMiniMapBar.Material()
+    return (db and GlassMiniMapBar.IsMaterial(db.material)) and db.material or GlassMiniMapBar.DEFAULT_MATERIAL
+end
+
+-- Save our own material, applied at the next /reload. Refused while following
+-- Glass UI, whose Pearl is in use: ours stays saved, untouched. Returns true,
+-- or false and why.
+function GlassMiniMapBar.SetMaterial(name)
+    if GlassMiniMapBar.Suite.Following() then return false, "set in Glass UI" end
+    if not GlassMiniMapBar.IsMaterial(name) then return false, "unknown material" end
+    db.material = name ~= GlassMiniMapBar.DEFAULT_MATERIAL and name or nil
+    return true
 end
 
 -- Apply a setting from the options panel (or a slash command).
@@ -148,8 +171,12 @@ events:SetScript("OnEvent", function(self, event, arg)
         self:UnregisterEvent("ADDON_LOADED")
         GlassMiniMapBarDB = GlassMiniMapBar.LoadDB(GlassMiniMapBarDB)
         Collector.orderOf = function() return db.order end
+        -- Glass UI's answer, then the glass: before anything is built.
+        API.Try("suite", GlassMiniMapBar.Suite.Start)
         if GlassMiniMapBar.Options then GlassMiniMapBar.Options.Register() end
     elseif event == "PLAYER_LOGIN" then
+        -- Our ADDON_LOADED failed before the glass: build it now (one answer per session).
+        if not GlassMiniMapBar.Glass then API.Try("suite", GlassMiniMapBar.Suite.Start) end
         API.Try("start", start)
         -- Once per new client build, in a development copy only: time to
         -- re-measure, then bump MEASURED_ON_BUILD (which silences it for good).
@@ -160,17 +187,41 @@ events:SetScript("OnEvent", function(self, event, arg)
             API.Print("new client build " .. build .. " (measured on "
                 .. GlassMiniMapBar.MEASURED_ON_BUILD .. "): re-measure, then bump MEASURED_ON_BUILD.")
         end
+    elseif event == "PLAYER_ENTERING_WORLD" then
+        -- Glass UI's class body: the class colour may have been unreadable before.
+        if GlassMiniMapBar.Suite.Applying() then API.Try("paint", Bar.Paint) end
     end
 end)
 API.RegisterEvent(events, "ADDON_LOADED")
 API.RegisterEvent(events, "PLAYER_LOGIN")
+API.RegisterEvent(events, "PLAYER_ENTERING_WORLD")
 
 --------------------------------------------------------------------------------
 -- /gmb
 --------------------------------------------------------------------------------
 
+local function material(arg)
+    local Suite = GlassMiniMapBar.Suite
+    if arg == "" then
+        API.Print("glass: " .. GlassMiniMapBar.MATERIAL_LABELS[GlassMiniMapBar.Material()]
+            .. " (" .. table.concat(GlassMiniMapBar.MATERIALS, " | ") .. "), in use: "
+            .. tostring(GlassMiniMapBar.GlassPreset))
+        local status = Suite.MaterialStatus()
+        if status then API.Print(status) end
+        return
+    end
+    local ok, why = GlassMiniMapBar.SetMaterial(arg)
+    if ok then
+        API.Print("glass: " .. GlassMiniMapBar.MATERIAL_LABELS[arg] .. ", applies after /reload.")
+    elseif why == "set in Glass UI" then
+        API.Print(Suite.MaterialStatus() or why)
+    else
+        API.Print("/gmb material " .. table.concat(GlassMiniMapBar.MATERIALS, " | "))
+    end
+end
+
 local function slash(msg)
-    local cmd = (msg or ""):lower():match("^%s*(%S*)")
+    local cmd, arg = (msg or ""):lower():match("^%s*(%S*)%s*(%S*)")
     if cmd == "scan" then
         local added, rejects = Collector.Scan(true)
         API.Print(("%d collected (%d new)."):format(#Collector.entries, added))
@@ -191,13 +242,18 @@ local function slash(msg)
         if not any then API.Print("no failures recorded.") end
     elseif cmd == "open" then
         Bar.Open()
+    elseif cmd == "material" then
+        material(arg)
+    elseif cmd == "suite" then
+        API.Print(GlassMiniMapBar.Suite.Status())
     elseif cmd == "reset" then
         db.minimap.minimapPos = nil
         API.Print("launcher position reset: /reload to apply.")
     elseif cmd == "" or cmd == "options" then
         GlassMiniMapBar.OpenOptions()
     else
-        API.Print("/gmb [options] | open | scan | failures | reset")
+        API.Print("/gmb [options] | open | material [" .. table.concat(GlassMiniMapBar.MATERIALS, "|")
+            .. "] | suite | scan | failures | reset")
     end
 end
 

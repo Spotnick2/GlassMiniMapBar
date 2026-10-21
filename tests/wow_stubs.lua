@@ -290,6 +290,17 @@ function WoW.reset()
         self:UpdateDisplay()
     end
     function AddonCompartmentFrame:UpdateDisplay() self._displayed = #self.registeredAddons end
+    -- EventRegistry (the dump's namespace walk): callbacks get (owner, ...).
+    EventRegistry = { callbacks = {} }
+    function EventRegistry:RegisterCallback(event, fn, owner)
+        self.callbacks[event] = self.callbacks[event] or {}
+        table.insert(self.callbacks[event], { fn = fn, owner = owner })
+    end
+    function EventRegistry:TriggerEvent(event, ...)
+        for _, c in ipairs(self.callbacks[event] or {}) do c.fn(c.owner, ...) end
+    end
+    -- The player's class: WoW.class = nil makes it unreadable (early in a login).
+    WoW.class = "PRIEST"
 end
 
 function print(...)
@@ -314,6 +325,13 @@ C_AddOns = {
     end,
 }
 function IsShiftKeyDown() return WoW.shift end
+-- UnitClass(unit) -> className, classFilename, classID; C_ClassColor.GetClassColor(className) -> colorRGB.
+function UnitClass(unit) if WoW.class then return WoW.class:lower(), WoW.class, 5 end end
+WoW.CLASS_COLORS = { PRIEST = { r = 1, g = 1, b = 1 }, MAGE = { r = 0.25, g = 0.78, b = 0.92 } }
+C_ClassColor = { GetClassColor = function(className)
+    local c = className and WoW.CLASS_COLORS[className:upper()]
+    return c and { r = c.r, g = c.g, b = c.b }
+end }
 function InCombatLockdown() return false end
 C_Texture = { GetAtlasInfo = function(name)
     if type(name) == "string" and name:match("^atlas:") then return { width = 16, height = 16 } end
@@ -482,6 +500,58 @@ end
 function WoW.LDBI() return WoW.ldbi end
 
 --------------------------------------------------------------------------------
+-- A fake Glass UI suite (its docs/SUITE.md and docs/SUITE-LOOK.md, API 1; the
+-- numbers are its Suite.BODY, as Glass MiniMap's stub has them). opts.answer:
+-- what Theme returns (default: following, Pearl); opts.tint: the suite look's
+-- tint; opts.noLook / noBody / noOpen leave those functions out (an older
+-- API 1). Every call is recorded; Report keeps each state it was given.
+--------------------------------------------------------------------------------
+
+function WoW.FakeGlassUI(opts)
+    opts = opts or {}
+    local fake = { reports = {}, asked = {}, bodies = {}, tint = opts.tint or "clear" }
+    local BODY = {
+        clear  = { tint = { 0.13, 0.16, 0.22, 0.24 }, wash = 1, backing = 0.35 },
+        smoked = { tint = { 0.05, 0.06, 0.08, 0.62 }, wash = 0.14 / 0.18, backing = 0.92 },
+        class  = { classShade = 0.6, wash = 1, backing = 0.35 },
+    }
+    fake.BODY = BODY
+    local S = { API = 1 }
+    function S.Theme(addon)
+        fake.asked[#fake.asked + 1] = addon
+        if opts.answer then return opts.answer() end
+        return { name = "pearl", preset = "pearl" }
+    end
+    function S.Report(addon, state) fake.reports[#fake.reports + 1] = { addon = addon, state = state } end
+    if not opts.noLook then
+        function S.Look() return { tint = fake.tint, hover = "glow", press = "flash", emptySlots = "frosted", accent = "gold" } end
+    end
+    if not opts.noBody then
+        function S.Body(tint)
+            fake.bodies[#fake.bodies + 1] = tint
+            local b = BODY[tint or fake.tint]
+            if not b then return nil end
+            return { tint = b.tint and { b.tint[1], b.tint[2], b.tint[3], b.tint[4] }, classShade = b.classShade,
+                     wash = b.wash, backing = { 0.04, 0.05, 0.07, b.backing } }
+        end
+    end
+    if not opts.noOpen then
+        function S.Open() fake.opened = (fake.opened or 0) + 1; return true end
+    end
+    fake.Suite = S
+    GlassUI = { Suite = S }
+    -- The suite look changes: Glass UI fires its event with a fresh table.
+    function fake.SetTint(tint)
+        fake.tint = tint
+        local payload = { tint = tint, hover = "glow", press = "flash", emptySlots = "frosted", accent = "gold" }
+        EventRegistry:TriggerEvent("GlassUI.Suite.LookChanged", payload)
+        return payload
+    end
+    function fake.LastReport() local r = fake.reports[#fake.reports]; return r and r.state end
+    return fake
+end
+
+--------------------------------------------------------------------------------
 -- Driving
 --------------------------------------------------------------------------------
 
@@ -508,7 +578,7 @@ WoW.reset()
 
 -- Strict globals.
 -- LibStub: the embedded library's own loader reads _G.LibStub before creating it.
-local allowNil = { GlassMiniMapBar = true, GlassMiniMapBarDB = true,
+local allowNil = { GlassMiniMapBar = true, GlassMiniMapBarDB = true, GlassUI = true,
                    SLASH_GLASSMINIMAPBAR1 = true, LibStub = true }
 setmetatable(_G, { __index = function(_, k)
     if allowNil[k] then return nil end

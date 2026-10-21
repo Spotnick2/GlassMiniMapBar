@@ -10,7 +10,7 @@ check(toc:find("## X-Curse-Project-ID: 1715522", 1, true), "CurseForge project I
 for _, f in ipairs(tocFiles(true)) do
     check(io.open(f, "r") ~= nil, "TOC file exists: " .. f)
 end
--- The library first: Glass.lua calls LibStub("LibGlass-1.0") at file scope.
+-- The library first: Glass.lua's BuildGlass calls LibStub("LibGlass-1.0") at ADDON_LOADED.
 eq(tocLines()[1], LIBGLASS_XML, "LibGlass-1.0 loads first")
 eq(tocFiles(true)[1], "Libs/LibStub/LibStub.lua", "then the vendored LibStub")
 eq(tocFiles()[1], "Compat.lua", "Compat is the first addon file")

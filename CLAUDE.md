@@ -25,6 +25,11 @@ minimap button. So we keep only that:
 - a **public API** (v1.1.0, `PublicAPI.lua`, contract in `docs/PUBLIC-API.md`): another addon's
   button as the launcher, and the glass tint. Glass MiniMap (`..\GlassMiniMap`) uses it; GlassMaps
   will. Bump `PUBLIC_API_VERSION` on any incompatible change.
+- **Glass UI's suite** (#37, `Suite.lua`): Glass UI (`..\GlassUI`, optional) can tell us to
+  wear its Pearl material and its live tint. Its contract is GlassUI's `docs/SUITE.md` and
+  `docs/SUITE-LOOK.md` (`GlassUI.Suite`, API 1); `Suite.lua` mirrors Glass MiniMap's (its
+  `docs/PLAN-suite.md`). Our own material (`material`: Pearl by default, Clean, Classic) is
+  suspended but kept while following.
 
 Not ported, on purpose: multiple bars, profiles, free-floating bars, Masque, LibDataBroker
 launchers as bar buttons, grabbing Blizzard's default minimap buttons (the AddOns compartment's
@@ -36,8 +41,9 @@ The rest of the in-game checklist under "Unmeasured" is still open.
 
 ## Layout
 
-TOC load order: `Libs\LibGlass-1.0\LibGlass-1.0.xml` → the vendored `Libs\*` → `Compat.lua` → `Glass.lua` → `Orb.lua` → `Collector.lua` →
-`Compartment.lua` → `Bar.lua` → `PublicAPI.lua` → `Options.lua` → `GlassMiniMapBar.lua`.
+TOC load order: `Libs\LibGlass-1.0\LibGlass-1.0.xml` → the vendored `Libs\*` → `Compat.lua` → `Glass.lua` → `Suite.lua` → `Orb.lua` →
+`Collector.lua` → `Compartment.lua` → `Bar.lua` → `PublicAPI.lua` → `Options.lua` → `GlassMiniMapBar.lua`.
+The TOC has `## OptionalDeps: GlassUI`, so Glass UI loads first when it's enabled.
 
 - **`Libs\`**: LibStub, CallbackHandler-1.0, LibDataBroker-1.1, LibDBIcon-1.0 (MINOR 56), copied
   from HidingBar, committed, and listed file by file in the TOC (no XML), so deploy copies them
@@ -54,9 +60,27 @@ TOC load order: `Libs\LibGlass-1.0\LibGlass-1.0.xml` → the vendored `Libs\*` �
   or the raw `@project-version@`) says so once per new build (`db.seenBuild`); a release never
   does (players gain nothing from it, and the TOC's Interface is what flags an addon out of date). Bump it only
   after re-measuring in game: bumping silences the only reminder.
-- **`Glass.lua`**: one line, this addon's instance of the material:
-  `GlassMiniMapBar.Glass = LibStub("LibGlass-1.0"):New()`. See **The glass material** below.
-  `Media\` holds only our own textures (the orb's).
+- **`Glass.lua`**: `GlassMiniMapBar.BuildGlass(preset)` makes this addon's instance of the
+  material, **once, at `ADDON_LOADED`** (after Glass UI's answer), so **nothing may read
+  `GlassMiniMapBar.Glass` at file scope**: `Bar.lua` and `Orb.lua` read it at call time. Presets:
+  `pearl` (r11+), `clean`, `classic` (`New()` with no preset, our look before Pearl). A Pearl
+  asked of an older LibGlass is `library-too-old`, a throwing `New` is `build-failed`; both fall
+  back to classic. See **The glass material** below. `Media\` holds only our own textures (the
+  orb's).
+- **`Suite.lua`**: Glass UI's suite. At our `ADDON_LOADED`, `Suite.Start` asks
+  `GlassUI.Suite.Theme` once per session, then builds the glass and `Report`s it.
+  - Validation: `rawget` everywhere, `API == 1` exactly, `pcall` on every call, and we never
+    read `GlassUIDB`. Anything absent, junk or throwing means our own look.
+  - **Following** (`preset = "pearl"`): we build Pearl, and `SetMaterial`, `/gmb material` and
+    the options refuse with "set in Glass UI". With both `Look` and `Body` present we also
+    **apply the suite look**: `Suite.Applying()`, exposed publicly as `FollowsSuite()`.
+  - **The look**: `Bar.Paint` paints the suite tint's `Suite.Body` numbers on the bar and the
+    orbs. `tint` (or `classShade` × our class colour, at the built alpha, repainted at
+    `PLAYER_ENTERING_WORLD`) and `wash` (× our `STYLE.wash`). Never the backing:
+    `own.backing = true`. `GlassUI.Suite.LookChanged` repaints and re-reports.
+  - **One tint driver at a time.** While applying, `SetGlassTint`'s colours are kept but not
+    painted, and Glass MiniMap stops sending them once `FollowsSuite()` is true. The answer is
+    settled at our `ADDON_LOADED`, before any addon's `PLAYER_LOGIN`.
 - **`Orb.lua`**: the glass material on a circle, for round buttons (the launcher, and the
   collected buttons when the skin option is on). It's a masked tint + wash behind the icon, the
   icon enlarged to 70% and masked round, and `orb_dark` + `orb_rim` over it. It only **adds**
@@ -127,8 +151,9 @@ TOC load order: `Libs\LibGlass-1.0\LibGlass-1.0.xml` → the vendored `Libs\*` �
 - **`GlassMiniMapBar.lua`**: `GlassMiniMapBarDB` (see the header for keys), `LoadDB` (fills,
   repairs and clamps, never wipes), `Set`, `SetHidden`, `MoveButton` (swaps with the neighbouring
   button **in the bar**, `Collector.Movable`; names not collected this session keep their slot in
-  the saved `order`), startup at `PLAYER_LOGIN`, and
-  `/gmb [options] | open | scan | failures | reset`.
+  the saved `order`), `Material` / `SetMaterial` (sparse: absent is Pearl), Glass UI's answer and
+  the glass at `ADDON_LOADED`, startup at `PLAYER_LOGIN`, and
+  `/gmb [options] | open | material [pearl|clean|classic] | suite | scan | failures | reset`.
 
 ## The glass material
 
@@ -150,13 +175,13 @@ texture names only grow; instances; upgrade rules).
   (LibStub runs that one). CI reads the pin from `.pkgmeta` (`tests/fetch_libglass.sh`), tests
   against it, and asserts the zip's `Libs/LibGlass-1.0/` is exactly that commit's shipped files.
   `tests\run.ps1` and the deploy warn when the local checkout isn't at the pin.
-- **`GlassMiniMapBar.Glass` is an instance**: its `STYLE` (read by `Orb.lua` at build time) and
+- **`GlassMiniMapBar.Glass` is an instance**, built at `ADDON_LOADED` (`Glass.lua`): its `STYLE` (read by `Orb.lua` at build time) and
   setters are this addon's own. `Glass.MEDIA` resolves to the winning copy's `Media\`: use it
   only for library textures. Our own art uses `Orb.MEDIA`.
 - **A wash is a gradient, and `SetAlpha` doesn't reach a gradient texture** on this client
   (LibGlass #47). Change a LibGlass surface's wash with `Glass.SetWash(g, peak)` (r7), and an
   orb's by repainting its gradient (`Orb.Paint`). `SetGlassTint`'s wash is a multiplier of
-  `STYLE.wash`, as Glass UI's `Body.wash` will be.
+  `STYLE.wash`, as Glass UI's `Body.wash` is.
 - **Colours passed to a glass bar's `SetStatusBarColor` must be plain** (the library's hook
   compares them): never a secret. We build no glass status bars today.
 
@@ -202,6 +227,11 @@ HidingBar's `-Vanilla.lua` and `-TBC.lua` files.
 8. ~~The LibGlass migration.~~ **Measured 2026-10-04 (PR #14, deploy + `/reload`):** the bar and
    the orbs look as before (panel textures from `Libs\LibGlass-1.0\Media`, orbs from our
    `Media\`), no errors, and the bar and options panel agree on which buttons show.
+9. **Glass UI's suite** (#37): with Glass UI following, the bar and orbs are Pearl and change
+   live with the suite tint (clear, smoked, class); Glass UI's card reads "Following (Pearl)"
+   with "its own backing"; Glass MiniMap's drawer no longer tints the bar. Follow off and
+   `/reload`: our own material comes back. The options' Glass row fits beside Layout. A tint
+   change in combat: nothing blocked.
 
 ## Toolchain and commands
 

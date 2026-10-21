@@ -15,8 +15,9 @@ GlassMiniMapBar = GlassMiniMapBar or {}
 local Bar = {}
 GlassMiniMapBar.Bar = Bar
 local API = GlassMiniMapBar.API
-local Glass = GlassMiniMapBar.Glass
 local Orb = GlassMiniMapBar.Orb
+local Suite = GlassMiniMapBar.Suite
+-- GlassMiniMapBar.Glass is built at ADDON_LOADED (Suite.Start): read it at call time.
 local Collector = GlassMiniMapBar.Collector
 local W = API.W
 
@@ -70,6 +71,7 @@ function Bar.Layout()
     local dir = Bar.Direction()
     local onRight, onTop = launcherSide()
     local vertical = dir == "up" or dir == "down"
+    local Glass = GlassMiniMapBar.Glass
     local size, gap = db.buttonSize, Bar.GAP
     local pad = Glass.Inset("large")
     local n = #visible
@@ -370,18 +372,46 @@ end
 
 function Bar.External() return external end
 
--- The bar's and the orbs' body tint (the host's theme), or nil for the built look.
--- t = { r, g, b, a|nil, wash|nil }: a nil alpha keeps each surface's own; wash
--- multiplies the built wash, through SetWash (SetAlpha doesn't reach a gradient).
-function Bar.SetGlassTint(t)
-    tint = t
-    Orb.tint = t and { t[1], t[2], t[3], t[4] } or nil
-    Orb.wash = t and t[5] or nil
+-- The body tint in effect: { r, g, b, a|nil } (nil = as built) and the wash
+-- as a multiplier of the built one. Glass UI's while we apply the suite look
+-- (its class body: our class colour shaded, at the built alpha; while the
+-- colour can't be read, as built until PLAYER_ENTERING_WORLD paints again),
+-- else the host's (SetGlassTint).
+local function bodyInEffect()
+    local b = Suite.Applying() and Suite.Body()
+    if b then
+        local t = b.tint
+        if not t and b.classShade then
+            local r, g, bl = API.ClassColor()
+            if r then t = { r * b.classShade, g * b.classShade, bl * b.classShade } end
+        end
+        return t, b.wash or 1
+    end
+    if tint then return { tint[1], tint[2], tint[3], tint[4] }, tint[5] or 1 end
+    return nil, 1
+end
+
+-- Paint the bar's and the orbs' body: the tint through SetSurfaceTint, the
+-- wash through SetWash (SetAlpha doesn't reach a gradient).
+function Bar.Paint()
+    local t, wash = bodyInEffect()
+    Orb.tint, Orb.wash = t, wash
+    local Glass = GlassMiniMapBar.Glass
     if glass then
         if t then Glass.SetSurfaceTint(glass, t[1], t[2], t[3], t[4]) else Glass.SetSurfaceTint(glass) end
-        Glass.SetWash(glass, math.min(1, Glass.STYLE.wash * (t and t[5] or 1)))
+        Glass.SetWash(glass, math.min(1, Glass.STYLE.wash * wash))
     end
     Orb.Repaint()
+end
+
+-- The host's theme (the public SetGlassTint), or nil for the built look.
+-- t = { r, g, b, a|nil, wash|nil }: a nil alpha keeps each surface's own; wash
+-- multiplies the built wash. Kept but not painted while we apply the suite
+-- look: Glass MiniMap stops sending it then (FollowsSuite), and an older one
+-- that still does mustn't make a second driver.
+function Bar.SetGlassTint(t)
+    tint = t
+    Bar.Paint()
 end
 
 function Bar.ApplyLock()
@@ -403,7 +433,7 @@ function Bar.Build(database)
     frame:SetClampedToScreen(true)
     frame:EnableMouse(true)             -- the gaps between buttons keep the bar, not the world
     frame:Hide()
-    glass = Glass.Apply(frame, "large")
+    glass = GlassMiniMapBar.Glass.Apply(frame, "large")
     frame:SetScript("OnUpdate", onUpdate)
     frame:SetScript("OnEvent", onEvent)
     frame:SetScript("OnShow", function(self) API.RegisterEvent(self, "GLOBAL_MOUSE_DOWN") end)
@@ -437,7 +467,7 @@ function Bar.Build(database)
         API.Fail("launcher", "LibDataBroker-1.1 / LibDBIcon-1.0 missing")
     end
     Bar.ApplyLock()
-    if tint then Bar.SetGlassTint(tint) end
+    Bar.Paint()
     if external then
         suppressNative()
         launcher = external

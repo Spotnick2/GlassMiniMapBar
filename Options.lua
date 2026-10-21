@@ -99,6 +99,50 @@ local function cycle(parent, anchor)
     return b
 end
 
+-- The glass material: a cycle button (Pearl, Clean, Classic), applied at
+-- /reload. While following Glass UI it is disabled and the line below says so,
+-- with a button to Glass UI's page when its Suite has Open. Our own choice
+-- stays saved meanwhile.
+local materialWidgets
+local function materialRow(parent, anchor)
+    local Suite = GlassMiniMapBar.Suite
+    local b = button(parent, "", 120)
+    b:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -6)
+    local fs = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    fs:SetPoint("LEFT", b, "RIGHT", 8, 0)
+    fs:SetText("Material (after /reload)")
+    local status = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    status:SetPoint("TOPLEFT", b, "BOTTOMLEFT", 2, -6)
+    status:SetWidth(300)
+    status:SetJustifyH("LEFT")
+    local open = button(parent, "Set in Glass UI", 130)
+    open:SetPoint("TOPLEFT", status, "BOTTOMLEFT", -2, -4)
+    open:SetScript("OnClick", function() Suite.Open() end)
+    local function refresh()
+        b:SetText(GlassMiniMapBar.MATERIAL_LABELS[GlassMiniMapBar.Material()])
+        b:SetEnabled(not Suite.Following())
+        local line = Suite.MaterialStatus()
+        if not line and GlassMiniMapBar.GlassPreset and GlassMiniMapBar.GlassPreset ~= GlassMiniMapBar.Material() then
+            line = "In use until /reload: " .. GlassMiniMapBar.MATERIAL_LABELS[GlassMiniMapBar.GlassPreset]
+        end
+        status:SetText(line or "")
+        open:SetShown(Suite.Following() and Suite.CanOpen())
+    end
+    b:SetScript("OnClick", function()
+        local list, cur = GlassMiniMapBar.MATERIALS, GlassMiniMapBar.Material()
+        for i, m in ipairs(list) do
+            if m == cur then
+                GlassMiniMapBar.SetMaterial(list[i % #list + 1])
+                break
+            end
+        end
+        refresh()
+    end)
+    table.insert(controls, { refresh = refresh })
+    materialWidgets = { button = b, status = status, open = open }
+    return status
+end
+
 -- The button lists: a classic dual list box. Hidden on the left, Shown in
 -- bar on the right (in bar order), arrows between them, Up/Down beside the
 -- shown list. One selection across both lists; double-click moves a button
@@ -287,6 +331,11 @@ local function build()
     a = stepper(panel, a, "hideDelay", "Seconds before the bar closes", "%.2f")
 
     h = heading(panel, "Layout", a, -18)
+    -- Glass sits in a second column beside Layout: the page is full below.
+    local glassHead = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    glassHead:SetPoint("TOPLEFT", h, "TOPLEFT", 340, 0)
+    glassHead:SetText("Glass")
+    materialRow(panel, glassHead)
     a = cycle(panel, h)
     a = stepper(panel, a, "perRow", "Buttons per row", "%d")
     a = stepper(panel, a, "buttonSize", "Button size", "%d")
@@ -316,4 +365,5 @@ Options._test = {
     lists = lists,
     arrows = arrows,
     selected = function() return selected end,
+    material = function() return materialWidgets end,
 }

@@ -77,5 +77,14 @@ function GlassMiniMapBar.SetGlassTint(r, g, b, a, wash)
     return true
 end
 
+-- True while we follow Glass UI's suite look (Suite.lua): its tint and wash
+-- are then on the bar and the orbs, and SetGlassTint's colours are kept but
+-- not painted. A host that themes us stops calling SetGlassTint while this is
+-- true, so the bar has one driver. Decided once per session, at our
+-- ADDON_LOADED; false before that. Added within PUBLIC_API_VERSION 1.
+function GlassMiniMapBar.FollowsSuite()
+    return GlassMiniMapBar.Suite.Applying() == true
+end
+
 -- GlassMiniMapBar.OpenOptions() (GlassMiniMapBar.lua) is part of this API too:
 -- it opens our page in Options > AddOns.

@@ -39,6 +39,19 @@ function API.SetIcon(tex, icon)
     return false
 end
 
+-- The player's class colour as r, g, b, or nil while it can't be read (early
+-- in a login, or a secret): Glass UI's class body (Suite.lua).
+function API.ClassColor()
+    local ok, _, class = pcall(UnitClass, "player")
+    class = ok and API.Plain(class) or nil
+    if type(class) ~= "string" then return nil end
+    local ok2, c = pcall(C_ClassColor.GetClassColor, class)
+    if not ok2 or type(c) ~= "table" then return nil end
+    local r, g, b = API.Plain(c.r), API.Plain(c.g), API.Plain(c.b)
+    if type(r) ~= "number" or type(g) ~= "number" or type(b) ~= "number" then return nil end
+    return r, g, b
+end
+
 function API.ClientBuild()
     local version, build = GetBuildInfo()
     return tostring(version) .. "." .. tostring(build)
