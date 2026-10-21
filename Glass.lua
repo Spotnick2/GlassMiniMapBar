@@ -24,28 +24,38 @@ GMB.MATERIAL_LABELS = { pearl = "Pearl", clean = "Clean", classic = "Classic" }
 
 function GMB.IsMaterial(name) return GMB.MATERIAL_LABELS[name] ~= nil end
 
+-- New with a preset name, under pcall: the instance, or nil. classic is
+-- New's default, built with no preset name, so a pre-r11 copy builds it too.
+local function try(lib, preset)
+    local ok, made = pcall(lib.New, lib, preset ~= "classic" and { preset = preset } or nil)
+    if ok and made then return made end
+end
+
 -- Build the instance with `preset`, once. Returns true, or false and why:
 -- "library-too-old" (the LibGlass that won LibStub predates Pearl) or
--- "build-failed" (New errored). After a failure the instance is classic,
--- which every LibGlass builds (New with no preset). GMB.GlassPreset is what
--- was built, GMB.GlassMinor the library's MINOR at the attempt.
+-- "build-failed" (New errored). After a failure the instance is clean, as
+-- Glass UI's contract and Glass MiniMap have it (so the drawer and its bar
+-- match), and classic only if clean throws too. GMB.GlassPreset is what was
+-- built, GMB.GlassMinor the library's MINOR at the attempt.
 function GMB.BuildGlass(preset)
     if GMB.Glass then return true end
     local lib, minor = LibStub("LibGlass-1.0")
     GMB.GlassMinor = minor
-    local why
+    local why = "build-failed"
     if preset == "pearl" and (type(minor) ~= "number" or minor < GMB.PEARL_MINOR) then
         why = "library-too-old"
     else
-        -- classic is New's default: no preset name, so a pre-r11 copy builds it too.
-        local opts = preset ~= "classic" and { preset = preset } or nil
-        local ok, made = pcall(lib.New, lib, opts)
-        if ok and made then
+        local made = try(lib, preset)
+        if made then
             GMB.Glass, GMB.GlassPreset = made, preset
             return true
         end
-        why = "build-failed"
     end
-    GMB.Glass, GMB.GlassPreset = lib:New(), "classic"
+    local made = preset ~= "clean" and try(lib, "clean")
+    if made then
+        GMB.Glass, GMB.GlassPreset = made, "clean"
+    else
+        GMB.Glass, GMB.GlassPreset = lib:New(), "classic"
+    end
     return false, why
 end

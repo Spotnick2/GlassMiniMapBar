@@ -125,6 +125,7 @@ function Orb.Paint(s)
     local Glass = GlassMiniMapBar.Glass
     local base = Glass.STYLE.tint
     local c = Orb.tint or base
+    -- A local rendering floor, not an override of Glass UI's look (no `own` key).
     local a = math.max((Orb.tint and Orb.tint[4]) or base[4], Orb.MIN_ALPHA)
     s.tint:SetColorTexture(c[1], c[2], c[3], a)
     local peak = math.min(1, Glass.STYLE.wash * (Orb.wash or 1))

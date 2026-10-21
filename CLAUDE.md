@@ -64,9 +64,9 @@ The TOC has `## OptionalDeps: GlassUI`, so Glass UI loads first when it's enable
   material, **once, at `ADDON_LOADED`** (after Glass UI's answer), so **nothing may read
   `GlassMiniMapBar.Glass` at file scope**: `Bar.lua` and `Orb.lua` read it at call time. Presets:
   `pearl` (r11+), `clean`, `classic` (`New()` with no preset, our look before Pearl). A Pearl
-  asked of an older LibGlass is `library-too-old`, a throwing `New` is `build-failed`; both fall
-  back to classic. See **The glass material** below. `Media\` holds only our own textures (the
-  orb's).
+  asked of an older LibGlass is `library-too-old`, a throwing `New` is `build-failed`. Both fall
+  back to clean, as Glass UI's contract and Glass MiniMap have it, and to classic only if clean
+  throws too. See **The glass material** below. `Media\` holds only our own textures (the orb's).
 - **`Suite.lua`**: Glass UI's suite. At our `ADDON_LOADED`, `Suite.Start` asks
   `GlassUI.Suite.Theme` once per session, then builds the glass and `Report`s it.
   - Validation: `rawget` everywhere, `API == 1` exactly, `pcall` on every call, and we never

@@ -106,7 +106,8 @@ function Suite.Start()
             failure = why
         else
             localFailure = why
-            GMB.API.Fail("material", "the " .. preset .. " glass couldn't be built (" .. why .. "): Classic instead")
+            GMB.API.Fail("material", "the " .. preset .. " glass couldn't be built (" .. why .. "): "
+                .. GMB.GlassPreset .. " instead")
         end
     end
     Suite.Report()
@@ -172,7 +173,7 @@ end
 function Suite.MaterialStatus()
     if following and not failure then return "Following Glass UI (Pearl): set in Glass UI" end
     local why = failure or localFailure
-    if why then return "Own look: " .. why .. " (Classic in use)" end
+    if why then return "Own look: " .. why .. " (" .. GMB.MATERIAL_LABELS[GMB.GlassPreset] .. " in use)" end
     return nil
 end
 

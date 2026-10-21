@@ -209,21 +209,28 @@ local function oldLibrary()
     end
 end
 G, ui = loadAddon({ suite = true, before = oldLibrary })
-eq(G.GlassPreset, "classic", "followed Pearl on LibGlass r10: classic")
+eq(G.GlassPreset, "clean", "followed Pearl on LibGlass r10: clean, as the contract has it")
 eq(ui.LastReport().built, nil, "...reported unbuilt")
 eq(ui.LastReport().reason, "library-too-old", "...library-too-old")
 check(G.Suite.MaterialStatus():find("library-too-old", 1, true), "...and the options say why")
 G = loadAddon({ before = oldLibrary })
-eq(G.GlassPreset, "classic", "our own Pearl on r10: classic")
+eq(G.GlassPreset, "clean", "our own Pearl on r10: clean")
 check(G.failures.material ~= nil, "...recorded in /gmb failures")
-check(G.Suite.MaterialStatus():find("Classic in use", 1, true), "...and the options say so")
+check(G.Suite.MaterialStatus():find("Clean in use", 1, true), "...and the options say so")
 G, ui = loadAddon({ suite = true, before = function()
     local lib = LibStub("LibGlass-1.0")
     local new = lib.New
     lib.New = function(self, opts) if opts then error("boom") end return new(self, opts) end
 end })
-eq(ui.LastReport().reason, "build-failed", "New throwing: build-failed")
-eq(G.GlassPreset, "classic", "...classic")
+eq(ui.LastReport().reason, "build-failed", "New throwing for every preset: build-failed")
+eq(G.GlassPreset, "classic", "...and classic, the last resort (New with no preset)")
+G, ui = loadAddon({ suite = true, before = function()
+    local lib = LibStub("LibGlass-1.0")
+    local new = lib.New
+    lib.New = function(self, opts) if opts and opts.preset == "pearl" then error("boom") end return new(self, opts) end
+end })
+eq(ui.LastReport().reason, "build-failed", "New throwing for Pearl only: build-failed")
+eq(G.GlassPreset, "clean", "...and clean")
 
 --------------------------------------------------------------------------------
 -- Our own material: Pearl by default, saved only when it differs.
