@@ -295,8 +295,8 @@ compartment, the fake libraries and Glass UI, driven through `WoW`), `tests\harn
 - Event names are validated against the pinned build's list. `test_methods.lua` checks every
   `Type:Method` called against that build's widget methods (`Kit.checkMethods`), with a floor on
   the count recorded, and must keep exercising every handler.
-- `done()` fails on a stray `|` in any printed line. The three known ones are #45's, let through
-  by name in `test_methods.lua` (`-- FINDING:`) until they're fixed.
+- `done()` fails on a stray `|` in any printed line: the client reads `|x` as an escape. Write
+  `||` for a literal one (#45).
 - `WoW.mouseOver[frame] = true` drives `IsMouseOver`; `WoW.tick(s)` runs `OnUpdate`.
 - **Mutation-test a new test**: break the behaviour and confirm it goes red.
 - Offline tests can't cover rendering, real minimap children, or other addons' handlers.
