@@ -204,7 +204,7 @@ local function material(arg)
     local Suite = GlassMiniMapBar.Suite
     if arg == "" then
         API.Print("glass: " .. GlassMiniMapBar.MATERIAL_LABELS[GlassMiniMapBar.Material()]
-            .. " (" .. table.concat(GlassMiniMapBar.MATERIALS, " | ") .. "), in use: "
+            .. " (" .. table.concat(GlassMiniMapBar.MATERIALS, " || ") .. "), in use: "
             .. tostring(GlassMiniMapBar.GlassPreset))
         local status = Suite.MaterialStatus()
         if status then API.Print(status) end
@@ -216,7 +216,7 @@ local function material(arg)
     elseif why == "set in Glass UI" then
         API.Print(Suite.MaterialStatus() or why)
     else
-        API.Print("/gmb material " .. table.concat(GlassMiniMapBar.MATERIALS, " | "))
+        API.Print("/gmb material " .. table.concat(GlassMiniMapBar.MATERIALS, " || "))
     end
 end
 
@@ -252,8 +252,9 @@ local function slash(msg)
     elseif cmd == "" or cmd == "options" then
         GlassMiniMapBar.OpenOptions()
     else
-        API.Print("/gmb [options] | open | material [" .. table.concat(GlassMiniMapBar.MATERIALS, "|")
-            .. "] | suite | scan | failures | reset")
+        -- "||" shows as one "|": a bare one starts an escape ("|c" is a colour).
+        API.Print("/gmb [options] || open || material [" .. table.concat(GlassMiniMapBar.MATERIALS, "||")
+            .. "] || suite || scan || failures || reset")
     end
 end
 

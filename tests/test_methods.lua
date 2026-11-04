@@ -90,16 +90,4 @@ for name in pairs(recorded) do WoW.methodsCalled[name] = true end
 local n = Kit.checkMethods()
 check(n >= 130, "the exercise reached the bar, the options and the suite (" .. n .. " recorded)")
 eq(next(GlassMiniMapBar.failures), nil, "no failures recorded while exercising everything")
--- FINDING (#45): /gmb material's two lines and the help line hold a bare "|",
--- which the client reads as an escape. Only those three are let through until
--- they're fixed; any other stray still fails done().
-local strays = {}
-for _, line in ipairs(WoW.strays) do
-    if not line:find("(pearl | clean | classic)", 1, true)
-        and not line:find("/gmb material pearl | clean | classic", 1, true)
-        and not line:find("/gmb [options] | open | material [pearl|clean|classic]", 1, true) then
-        strays[#strays + 1] = line
-    end
-end
-WoW.strays = strays
 done("test_methods")
