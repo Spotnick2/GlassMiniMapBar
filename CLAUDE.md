@@ -269,21 +269,34 @@ All of these find LibGlass at `$env:LIBGLASS`, else `..\LibGlass`.
 
 ## Testing
 
-`tests\` follows GlassPanel's: plain Lua 5.1, `tests\wow_stubs.lua` (driven through `WoW`),
-`tests\harness.lua` (`check` / `eq` / `loadAddon` / `launcher` / `bar` / `entry`), and
-`tests\run.ps1`.
+The test scaffolding is WowTestKit (`C:\Projects\WoW\WowTestKit`; its README is the reference)
+at the commit and client build `tests\kit.pin` names. `tests\run.ps1` puts that commit in
+`%LOCALAPPDATA%\WowTestKit\<sha>` and hands off to the kit's runner; CI fetches it with
+`tests\fetch_kit.sh`. `tests\kit.lua`, `kit.ps1` and `fetch_kit.sh` are the kit's bootstrap
+copies: never edit them here. A kit need is an issue on the kit, worked around in
+`tests\wow_stubs.lua` with a `-- WowTestKit #N:` comment meanwhile. `tests\run.ps1 -KitDev`
+runs against the `..\WowTestKit` working copy instead of the pin.
 
-- **The stub is an allowlist**, with strict globals. Before stubbing a global, confirm it's in
-  the dump and copy its signature.
-- The stub's widget metatable `__index` is a real method **table** (not a function), because the
-  addon calls `getmetatable(CreateFrame("Frame")).__index.SetPoint(btn, ...)`.
+On top of the kit: `tests\wow_stubs.lua` (this addon's client APIs, Minimap and the
+compartment, the fake libraries and Glass UI, driven through `WoW`), `tests\harness.lua`
+(`loadAddon` / `launcher` / `bar` / `entry`; `check` / `eq` / `done` are the kit's).
+
+- **The stub is an allowlist**, with strict globals (`Kit.strict`). Before stubbing a global,
+  confirm it's in the dump and copy its signature.
+- The widget metatable's `__index` must be a real method **table** (not a function), because the
+  addon calls `getmetatable(CreateFrame("Frame")).__index.SetPoint(btn, ...)`. The kit's is a
+  function, so the stub wraps it (WowTestKit #7).
+- The pin's `build` stays `MEASURED_ON_BUILD`'s (70450): a newer one is a re-measure in game first.
 - `loadAddon` loads the TOC the client's way: the LibGlass XML's scripts from the checkout (the
   real LibStub included, fresh each session), then the addon files. The vendored `Libs\` aren't
   loaded: `WoW.installFakeLibs` registers a fake LibDataBroker and a fake LibDBIcon
   (`WoW.LDBI()`) into that LibStub, whose `Register` makes a button like the real one (border 136430, background
   136467, icon) and fires `LibDBIcon_IconCreated`. `WoW.MinimapButton{...}` makes a hand-made one.
-- Event names are validated against the dump. `test_methods.lua` checks every widget method
-  called against the dump's widget-method list, and must keep exercising every handler.
+- Event names are validated against the pinned build's list. `test_methods.lua` checks every
+  `Type:Method` called against that build's widget methods (`Kit.checkMethods`), with a floor on
+  the count recorded, and must keep exercising every handler.
+- `done()` fails on a stray `|` in any printed line. The three known ones are #45's, let through
+  by name in `test_methods.lua` (`-- FINDING:`) until they're fixed.
 - `WoW.mouseOver[frame] = true` drives `IsMouseOver`; `WoW.tick(s)` runs `OnUpdate`.
 - **Mutation-test a new test**: break the behaviour and confirm it goes red.
 - Offline tests can't cover rendering, real minimap children, or other addons' handlers.

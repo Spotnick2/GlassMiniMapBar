@@ -162,9 +162,9 @@ check(not C.Replay("CompositeMinimapFrame", "LeftButton"), "replay with no handl
 -- Secret answers (70374): a child whose protection or size is secret is
 -- skipped, never truth-tested or measured, and the others are still collected.
 local veiled = WoW.MinimapButton({ name = "VeiledMinimapButton" })
-veiled._protected = WoW.Secret()
+veiled._protected = WoW.Secret("protection")
 local sized = WoW.MinimapButton({ name = "SizedMinimapButton" })
-sized._width = WoW.Secret()
+sized._width = WoW.Secret("width")
 WoW.MinimapButton({ name = "PlainAfterSecretsButton" })
 local _, rej = C.Scan(true)
 local reasons = {}
