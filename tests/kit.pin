@@ -1,0 +1,5 @@
+# WowTestKit for these tests: the commit, and the client build to test against.
+# build stays 70450 with MEASURED_ON_BUILD (Compat.lua): a newer build is a re-measure in game first.
+sha=80a051ec3304e5394534513500f655c35643d8fa
+build=70450
+api=1

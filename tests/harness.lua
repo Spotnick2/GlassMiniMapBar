@@ -1,41 +1,17 @@
--- harness.lua: assertions and the addon loader. dofile it after wow_stubs.lua.
+-- harness.lua: the addon loader. dofile it after wow_stubs.lua. The assertions
+-- (check / eq / done) are WowTestKit's.
 
-local passed, failed = 0, 0
-
-function check(cond, msg)
-    if cond then passed = passed + 1 else
-        failed = failed + 1
-        io.write("  FAIL: " .. tostring(msg) .. "\n")
-    end
-end
-
-function eq(actual, expected, msg)
-    check(actual == expected, string.format("%s: expected %s, got %s", msg, tostring(expected), tostring(actual)))
-end
-
-function done(name)
-    io.write(string.format("%s: %d passed, %d failed\n", name, passed, failed))
-    os.exit(failed == 0 and 0 or 1)
-end
+TOC = "GlassMiniMapBar.toc"
 
 -- Every file line of the TOC, in load order (our .lua files, the vendored
 -- Libs\ and the embedded LibGlass's .xml), as written.
-function tocLines()
-    local lines = {}
-    for line in io.lines("GlassMiniMapBar.toc") do
-        line = line:gsub("\r", "")
-        if line ~= "" and not line:match("^#") then lines[#lines + 1] = line end
-    end
-    return lines
-end
+function tocLines() return Kit.tocLines(TOC) end
 
 -- Lua files listed in the TOC, in load order. `all` includes the vendored Libs\.
 function tocFiles(all)
     local files = {}
-    for _, line in ipairs(tocLines()) do
-        if line:match("%.lua$") and (all or not line:match("^Libs\\")) then
-            files[#files + 1] = (line:gsub("\\", "/"))
-        end
+    for _, file in ipairs(Kit.tocFiles(TOC)) do
+        if all or not file:match("^Libs/") then files[#files + 1] = file end
     end
     return files
 end

@@ -2,15 +2,13 @@
 dofile("tests/wow_stubs.lua")
 dofile("tests/harness.lua")
 
-local toc = io.open("GlassMiniMapBar.toc"):read("*a")
-check(toc:find("## Interface: 16001", 1, true), "interface 16001 (1.60.1; 11601 is the transposed-digit bug)")
-check(toc:find("## Version: @project-version@", 1, true), "packager version token kept")
+-- The kit's: interface 16001, the version token, every listed file exists and
+-- is listed once.
+Kit.checkToc(TOC)
+local toc = io.open(TOC):read("*a")
 check(toc:find("## SavedVariables: GlassMiniMapBarDB", 1, true), "saved variables declared")
 check(toc:find("## X-Curse-Project-ID: 1715522", 1, true), "CurseForge project ID (1715522)")
 check(toc:find("## X-Wago-ID: vNAW5gKo\n", 1, true), "Wago project ID (vNAW5gKo): the wago job uploads to it")
-for _, f in ipairs(tocFiles(true)) do
-    check(io.open(f, "r") ~= nil, "TOC file exists: " .. f)
-end
 -- The library first: Glass.lua's BuildGlass calls LibStub("LibGlass-1.0") at ADDON_LOADED.
 eq(tocLines()[1], LIBGLASS_XML, "LibGlass-1.0 loads first")
 eq(tocFiles(true)[1], "Libs/LibStub/LibStub.lua", "then the vendored LibStub")
@@ -23,11 +21,6 @@ for _, f in ipairs(tocFiles(true)) do
     local src = io.open(f, "rb"):read("*a")
     local token = src:match("@project%-[%w-]+@") or src:match("@file%-[%w-]+@")
     check(not token, f .. " holds no packager token (found " .. tostring(token) .. ")")
-end
-local seen = {}
-for _, f in ipairs(tocFiles(true)) do
-    check(not seen[f], "TOC lists each file once: " .. f)
-    seen[f] = true
 end
 
 loadAddon()
