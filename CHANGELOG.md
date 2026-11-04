@@ -1,5 +1,13 @@
 # Glass MiniMap Bar Changelog
 
+## v1.3.0 - 2026-11-04
+
+### Fixed
+
+- **`/gmb` help reads correctly in chat.** The help line and `/gmb material` listed their
+  choices with a bare `|`, which the game reads as the start of a formatting code, so those
+  lines could come out garbled. They now show as written.
+
 ## v1.2.0 - 2026-10-21
 
 ### Changed
