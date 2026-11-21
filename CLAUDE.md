@@ -334,13 +334,18 @@ realm or guild name shows.
    by the previous version's heading, as if those were the new release's notes. Add `## vX.Y.Z - <date>` at the top, written for
    players (what changed for them, not the diff). Anything that behaves differently after
    updating gets its own heading.
-2. Merge through a PR, then tag `main`: `git tag v1.0.0 && git push origin v1.0.0`.
+2. **A release tag (`vX.Y.Z`, not an alpha or beta) updates both READMEs** in its prep PR
+   (RELEASING.md §3): `README.md` and the untracked `README.curseforge.md` describe what this
+   release does (new features, commands, options, changed limits, screenshots), and nothing it
+   no longer does. Say in the PR whether `README.curseforge.md` changed: the owner pastes it into
+   CurseForge and Wago after the release.
+3. Merge through a PR, then tag `main`: `git tag v1.0.0 && git push origin v1.0.0`.
    Push **that tag only**, never `--tags`: every tag that reaches GitHub is a CurseForge release.
-3. The release type comes from the **tag name**: `alpha` / `beta` → that channel, anything else →
+4. The release type comes from the **tag name**: `alpha` / `beta` → that channel, anything else →
    Release. It's a distribution channel, not a stability claim: CurseForge users are on Release
    by default, so a beta tag holds the build back from them. The game client being in beta is
    not a reason to tag beta.
-4. **Check the published zip by hand**: `GlassMiniMapBar/` with the TOC's files, `Libs\` (the
+5. **Check the published zip by hand**: `GlassMiniMapBar/` with the TOC's files, `Libs\` (the
    four vendored libs, three of them with their `LICENSE.txt`, and `Libs\LibGlass-1.0\` with only its XML, `LibGlass.lua`,
    `LibStub\LibStub.lua`, `LICENSE` and `Media\*.tga`), `Media\` (the four `orb_*`) and
    `LICENSE`, nothing else. CI (`.github/workflows/package-check.yml`) proves the BigWigs
