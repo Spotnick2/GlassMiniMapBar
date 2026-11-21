@@ -194,7 +194,7 @@ HidingBar's `-Vanilla.lua` and `-TBC.lua` files.
 - `C:\Projects\WoW\References\Docs\PORTING-TBC-TO-FOREVER.md` holds the canonical addon-agnostic field
   notes, measured on the live client. Treat them as fact. Other sessions edit this file, so
   write new addon-agnostic findings there, not into a copy here.
-- `C:\Projects\WoW\References\Forever\api\forever-api-1.60.1.70450.md` is the full API dump: functions, events,
+- `C:\Projects\WoW\References\Forever\api\forever-api-1.60.1.71037.md` is the full API dump: functions, events,
   **widget methods** (the only list of those) and the `_G` walk. It proves a name exists, not
   that it works.
 - In game: `/api search <name>`.
@@ -286,7 +286,7 @@ compartment, the fake libraries and Glass UI, driven through `WoW`), `tests\harn
 - The widget metatable's `__index` must be a real method **table** (not a function), because the
   addon calls `getmetatable(CreateFrame("Frame")).__index.SetPoint(btn, ...)`. The kit's is one
   since API 2 (WowTestKit #7), so the stub no longer wraps it.
-- The pin's `build` stays `MEASURED_ON_BUILD`'s (70450): a newer one is a re-measure in game first.
+- The pin's `build` stays `MEASURED_ON_BUILD`'s (71037): a newer one is a re-measure in game first.
 - `loadAddon` loads the TOC the client's way: the LibGlass XML's scripts from the checkout (the
   real LibStub included, fresh each session), then the addon files. The vendored `Libs\` aren't
   loaded: `WoW.installFakeLibs` registers a fake LibDataBroker and a fake LibDBIcon
