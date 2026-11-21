@@ -284,8 +284,8 @@ compartment, the fake libraries and Glass UI, driven through `WoW`), `tests\harn
 - **The stub is an allowlist**, with strict globals (`Kit.strict`). Before stubbing a global,
   confirm it's in the dump and copy its signature.
 - The widget metatable's `__index` must be a real method **table** (not a function), because the
-  addon calls `getmetatable(CreateFrame("Frame")).__index.SetPoint(btn, ...)`. The kit's is a
-  function, so the stub wraps it (WowTestKit #7).
+  addon calls `getmetatable(CreateFrame("Frame")).__index.SetPoint(btn, ...)`. The kit's is one
+  since API 2 (WowTestKit #7), so the stub no longer wraps it.
 - The pin's `build` stays `MEASURED_ON_BUILD`'s (70450): a newer one is a re-measure in game first.
 - `loadAddon` loads the TOC the client's way: the LibGlass XML's scripts from the checkout (the
   real LibStub included, fresh each session), then the addon files. The vendored `Libs\` aren't

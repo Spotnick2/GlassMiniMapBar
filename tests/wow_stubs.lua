@@ -20,19 +20,6 @@ dofile("tests/kit.lua")
 local Methods = WoW.Methods
 local newWidget = WoW.newWidget
 
--- WowTestKit #7: the client's widget metatable has a method TABLE as its
--- __index, and the addon calls methods through it
--- (getmetatable(CreateFrame("Frame")).__index.SetPoint(btn, ...), Compat.lua's
--- API.W) on buttons whose own SetPoint/Show/... it has replaced. The core's is
--- a function; this puts the same lookup behind a table.
-do
-    local mt = getmetatable(newWidget("Frame"))
-    local lookup = mt.__index
-    if type(lookup) == "function" then
-        mt.__index = setmetatable({}, { __index = function(_, k) return lookup(nil, k) end })
-    end
-end
-
 --------------------------------------------------------------------------------
 -- Templates (CreateFrame's fourth argument)
 --------------------------------------------------------------------------------
