@@ -54,7 +54,6 @@ if (-not $pin) { Write-Host "  (no LibGlass pin found in .pkgmeta)" -ForegroundC
 
 $tocName = "GlassMiniMapBar.toc"
 $dest = Join-Path $AddOnsPath "GlassMiniMapBar"
-$isNew = -not (Test-Path $dest)
 
 # The library first: its deploy checks the checkout and may refuse, and a
 # refusal must leave the deployed addon as it was (a new TOC naming a library
@@ -100,9 +99,6 @@ Get-ChildItem -LiteralPath $media -File | Where-Object { $ours -notcontains $_.N
 }
 
 Write-Host ""
-if ($isNew) {
-    Write-Host "Brand-new addon folder: restart the client (a /reload won't find it)." -ForegroundColor Yellow
-} else {
-    Write-Host "Changed or new files: /reload is enough." -ForegroundColor Yellow
-}
-Write-Host "In game:  /console scriptErrors 1   then   /gmb scan" -ForegroundColor Green
+# /reload loads all of it, a brand-new addon folder and new textures included
+# (porting guide section 5, re-measured 2026-11-16).
+Write-Host "In game:  /console scriptErrors 1   then   /reload   then   /gmb scan" -ForegroundColor Green

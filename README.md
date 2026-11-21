@@ -84,10 +84,10 @@ Download the zip from [GitHub Releases](https://github.com/Spotnick2/GlassMiniMa
 and extract it so the folder lands at:
 
 ```
-World of Warcraft/_classic_beta_/Interface/AddOns/GlassMiniMapBar/
+World of Warcraft/_forever_/Interface/AddOns/GlassMiniMapBar/
 ```
 
-A brand-new addon folder needs a full game restart, not just a `/reload`.
+Then `/reload` (or log in): a new addon folder no longer needs a game restart.
 
 **Using HidingBar already?** Disable it (and HidingBar_Options) before enabling Glass MiniMap Bar:
 both collect the same minimap buttons and would fight over them.
