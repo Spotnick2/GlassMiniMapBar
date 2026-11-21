@@ -222,8 +222,8 @@ HidingBar's `-Vanilla.lua` and `-TBC.lua` files.
 6. **The grow animation** (Scale animation origin and `SetScaleFrom` on a frame with masked
    9-sliced regions): look for rim or mask artefacts while it plays.
 7. ~~Textures: a client restart for new `orb_*.tga`.~~ **Measured elsewhere (GlassUnitFrames,
-   LibGlass):** new files inside an existing addon folder load after `/reload`. Only a
-   brand-new addon folder needs a client restart.
+   LibGlass, GuildSpy #97 on 2026-11-16):** `/reload` loads everything a deploy brings: new
+   textures, TOC changes, a brand-new addon folder (porting guide §5).
 8. ~~The LibGlass migration.~~ **Measured 2026-10-04 (PR #14, deploy + `/reload`):** the bar and
    the orbs look as before (panel textures from `Libs\LibGlass-1.0\Media`, orbs from our
    `Media\`), no errors, and the bar and options panel agree on which buttons show.
@@ -248,12 +248,13 @@ bash tests/fetch_libglass.sh <new-dir>                                # clone Li
 
 All of these find LibGlass at `$env:LIBGLASS`, else `..\LibGlass`.
 
-- Default AddOns path: `C:\Program Files (x86)\World of Warcraft\_classic_beta_\Interface\AddOns`
+- Default AddOns path: `C:\Program Files (x86)\World of Warcraft\_forever_\Interface\AddOns`
   (`-AddOnsPath` to override).
 - Deploy rewrites `## Version: @project-version@` to `dev` in the deployed copy only. Never
   commit a literal version over that token.
 - In game: `/console scriptErrors 1`, then `/reload`. Check the AddOns list shows the addon
-  enabled and **not flagged out of date**. A brand-new addon folder needs a client restart.
+  enabled and **not flagged out of date**. `/reload` is enough for any deploy, a brand-new addon
+  folder included (porting guide §5); a full client exit only to test persistence.
 - **HidingBar must be disabled** while this runs: both grab the same buttons and would fight
   over them.
 
