@@ -20,19 +20,6 @@ dofile("tests/kit.lua")
 local Methods = WoW.Methods
 local newWidget = WoW.newWidget
 
--- WowTestKit #7: the client's widget metatable has a method TABLE as its
--- __index, and the addon calls methods through it
--- (getmetatable(CreateFrame("Frame")).__index.SetPoint(btn, ...), Compat.lua's
--- API.W) on buttons whose own SetPoint/Show/... it has replaced. The core's is
--- a function; this puts the same lookup behind a table.
-do
-    local mt = getmetatable(newWidget("Frame"))
-    local lookup = mt.__index
-    if type(lookup) == "function" then
-        mt.__index = setmetatable({}, { __index = function(_, k) return lookup(nil, k) end })
-    end
-end
-
 --------------------------------------------------------------------------------
 -- Templates (CreateFrame's fourth argument)
 --------------------------------------------------------------------------------
@@ -184,8 +171,8 @@ Enum = { UITextureSliceMode = { Stretched = 0, Tiled = 1 } }
 function CreateColor(r, g, b, a) return { r = r, g = g, b = b, a = a } end
 -- WoW.build: the client's build. WoW.version: the TOC's Version, release-shaped
 -- by default ("dev" is what Tools/deploy.ps1 writes).
-WoW.build, WoW.version = "70450", "v1.0.0"
-function GetBuildInfo() return "1.60.1", WoW.build, "Sep 23 2026", 16001 end
+WoW.build, WoW.version = "71037", "v1.0.0"
+function GetBuildInfo() return "1.60.1", WoW.build, "Nov 18 2026", 16001 end
 C_AddOns = {
     GetAddOnMetadata = function(name, variable)
         if name == "GlassMiniMapBar" and variable == "Version" then return WoW.version end
